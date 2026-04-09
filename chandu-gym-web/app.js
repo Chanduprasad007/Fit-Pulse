@@ -3,6 +3,9 @@ import {
   DAY_ORDER,
   PROGRAM,
   TRAINING_PHASES,
+  TRAINER_PROFILE,
+  NUTRITION_SNAPSHOT,
+  GYM_TRIGGER_CHIPS,
   createInitialState,
 } from "./workout-data.js";
 import { initSupabaseSync } from "./supabase-sync.js";
@@ -22,14 +25,18 @@ const elements = {
   statsGrid: document.querySelector("#stats-grid"),
   coachInsights: document.querySelector("#coach-insights"),
   workoutSummary: document.querySelector("#workout-summary"),
+  coachBrief: document.querySelector("#coach-brief"),
   exerciseList: document.querySelector("#exercise-list"),
   sessionForm: document.querySelector("#session-form"),
   historyList: document.querySelector("#history-list"),
+  nutritionStrip: document.querySelector("#nutrition-strip"),
   upperIncrement: document.querySelector("#upper-increment"),
   lowerIncrement: document.querySelector("#lower-increment"),
   importData: document.querySelector("#import-data"),
   authShell: document.querySelector("#auth-shell"),
   themeToggle: document.querySelector("#theme-toggle"),
+  triggerChipList: document.querySelector("#trigger-chip-list"),
+  coachTriggerMessage: document.querySelector("#coach-trigger-message"),
 };
 
 const syncManager = initSupabaseSync({
@@ -315,9 +322,12 @@ function render() {
   const nextWorkout = getWorkoutForDay(dayKey);
 
   renderHero(nextWorkout);
+  renderTriggerChips(nextWorkout);
   renderStats(nextWorkout);
   renderInsights(nextWorkout);
+  renderNutritionStrip();
   renderWorkoutSummary(nextWorkout);
+  renderCoachBrief(nextWorkout);
   renderExerciseList(nextWorkout);
   renderSessionForm(nextWorkout);
   renderHistory();
@@ -351,6 +361,42 @@ function renderHero(nextWorkout) {
       </div>
     </div>
   `;
+}
+
+function renderTriggerChips(nextWorkout) {
+  elements.triggerChipList.innerHTML = GYM_TRIGGER_CHIPS
+    .map(
+      (label) => `
+        <button type="button" class="trigger-chip" data-trigger="${label}">
+          ${label}
+        </button>
+      `,
+    )
+    .join("");
+
+  const defaultMessage = `Bro, ${nextWorkout.label} · ${nextWorkout.title} is up. ${nextWorkout.tip}`;
+  elements.coachTriggerMessage.textContent = defaultMessage;
+
+  elements.triggerChipList.querySelectorAll(".trigger-chip").forEach((button) => {
+    button.onclick = () => {
+      const trigger = button.dataset.trigger || "Gym today";
+      elements.coachTriggerMessage.textContent = buildTriggerMessage(trigger, nextWorkout);
+      document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  });
+}
+
+function buildTriggerMessage(trigger, nextWorkout) {
+  const opening =
+    trigger === "At the gym"
+      ? "You're already in the arena."
+      : trigger === "Going to Cult"
+        ? "Cult session locked in."
+        : trigger === "What's my workout?"
+          ? "Here’s the move for today."
+          : "Gym time.";
+
+  return `${opening} ${nextWorkout.label} · ${nextWorkout.title}. ${nextWorkout.tip}`;
 }
 
 function renderStats(nextWorkout) {
@@ -388,6 +434,23 @@ function renderInsights(nextWorkout) {
     .join("");
 }
 
+function renderNutritionStrip() {
+  elements.nutritionStrip.innerHTML = `
+    <article class="nutrition-card">
+      <p class="micro-label">Chandu Context</p>
+      <p>${TRAINER_PROFILE.athlete}</p>
+      <p class="muted">${TRAINER_PROFILE.goal}</p>
+      <p class="muted">${TRAINER_PROFILE.gym} · ${TRAINER_PROFILE.schedule}</p>
+    </article>
+    <article class="nutrition-card">
+      <p class="micro-label">Nutrition Snapshot</p>
+      <div class="nutrition-list">
+        ${NUTRITION_SNAPSHOT.map((item) => `<span class="pill">${item}</span>`).join("")}
+      </div>
+    </article>
+  `;
+}
+
 function renderWorkoutSummary(nextWorkout) {
   const phase = getTrainingPhase();
   const exposureCount = getDayExposureCount(getNextDayKey());
@@ -417,6 +480,25 @@ function renderWorkoutSummary(nextWorkout) {
               : "Base day only for now. Nail it and the extras will unlock."
           }
         </p>
+      </article>
+    </div>
+  `;
+}
+
+function renderCoachBrief(nextWorkout) {
+  const phase = getTrainingPhase();
+  elements.coachBrief.innerHTML = `
+    <div class="coach-brief-grid">
+      <article class="brief-card">
+        <p class="micro-label">Coach Brief</p>
+        <h3>${nextWorkout.label} · ${nextWorkout.title}</h3>
+        <p>${nextWorkout.motivation}</p>
+        <p class="muted">${nextWorkout.tip}</p>
+      </article>
+      <article class="brief-card">
+        <p class="micro-label">Execution Focus</p>
+        <p>Stay in the ${phase.name.toLowerCase()} phase mindset: own clean reps first, then earn progression.</p>
+        <p class="muted">Progressive overload reminder: add a little weight or a rep every 1-2 weeks when form stays sharp.</p>
       </article>
     </div>
   `;

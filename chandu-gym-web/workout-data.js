@@ -22,12 +22,36 @@ export const TRAINING_PHASES = [
   },
 ];
 
+export const TRAINER_PROFILE = {
+  athlete: "Chandu, 29, 6'1\", 79 kg",
+  goal: "Lean bulk with wide shoulders, thick back, and stronger full-body lifts.",
+  gym: "Cult Fitness, Uttarahalli, Bengaluru",
+  schedule: "Usually weekday mornings around 5 AM or 6 AM.",
+};
+
+export const NUTRITION_SNAPSHOT = [
+  "Protein target: 130 g",
+  "Lean-bulk calories: 2400-2600 kcal",
+  "Priority foods: eggs, whey, dal, paneer, curd",
+  "Creatine: 5 g daily",
+  "Post-workout meal: within 30-45 min",
+];
+
+export const GYM_TRIGGER_CHIPS = [
+  "Gym today",
+  "At the gym",
+  "Going to Cult",
+  "What's my workout?",
+];
+
 export const PROGRAM = {
   A: {
     label: "Day A",
     title: "Chest + Triceps",
     focus: "Chest mass and tricep thickness",
     goal: "Build pressing strength and fuller triceps without junk volume.",
+    tip: "Do 2-3 warm-up bench sets, then keep every work set crisp and controlled.",
+    motivation: "Big chest days are won with tight setup, not reckless load jumps.",
     exercises: [
       { id: "bench-press", name: "Barbell Bench Press", sets: 4, repMin: 6, repMax: 8, rest: "90s", cue: "Retract shoulder blades and keep the bar path low on the chest.", loadTrack: true, muscleGroup: "upper", progression: "compound" },
       { id: "incline-db-press", name: "Incline Dumbbell Press", sets: 3, repMin: 8, repMax: 10, rest: "75s", cue: "Use a 30-45 degree bench and own the descent.", loadTrack: true, muscleGroup: "upper", progression: "compound" },
@@ -45,6 +69,8 @@ export const PROGRAM = {
     title: "Back + Biceps",
     focus: "Wide lats, thick back, and bigger arms",
     goal: "Own your pull-ups and build dense rowing strength.",
+    tip: "Start your first row lighter than you think and lock your torso in before chasing weight.",
+    motivation: "Row with intent, bro. Back width and thickness come from clean pulls.",
     exercises: [
       { id: "pull-up", name: "Pull-Ups / Assisted Pull-Ups", sets: 4, repMin: 6, repMax: 10, rest: "90s", cue: "Full hang, chest up, pull elbows to the ribs.", loadTrack: true, muscleGroup: "upper", progression: "compound" },
       { id: "barbell-row", name: "Barbell Row", sets: 4, repMin: 6, repMax: 8, rest: "90s", cue: "Stay hinged and pull to the lower chest or navel.", loadTrack: true, muscleGroup: "upper", progression: "compound" },
@@ -62,6 +88,8 @@ export const PROGRAM = {
     title: "Shoulders + Abs",
     focus: "Wide delts and resilient core strength",
     goal: "Bring up side delts and keep presses crisp without shoulder irritation.",
+    tip: "Keep lateral raises strict and stop before the traps take over the movement.",
+    motivation: "Control beats ego here. Shoulder shape comes from quality reps.",
     exercises: [
       { id: "overhead-press", name: "Overhead Press", sets: 4, repMin: 6, repMax: 8, rest: "90s", cue: "Press in a straight line and squeeze glutes through the lockout.", loadTrack: true, muscleGroup: "upper", progression: "compound" },
       { id: "lateral-raise", name: "Lateral Raise", sets: 4, repMin: 12, repMax: 15, rest: "60s", cue: "Lead with elbows and stop before traps dominate.", loadTrack: true, muscleGroup: "upper", progression: "accessory" },
@@ -79,6 +107,8 @@ export const PROGRAM = {
     title: "Legs + Glutes",
     focus: "Leg size, strength, and glute power",
     goal: "Build a stronger base and keep hamstrings active instead of just surviving leg day.",
+    tip: "Take a full breath and brace before every squat. Own the bottom position instead of rushing it.",
+    motivation: "Leg day is where the whole physique gets stronger, not just the quads.",
     exercises: [
       { id: "barbell-squat", name: "Barbell Squat", sets: 4, repMin: 6, repMax: 8, rest: "2m", cue: "Brace hard, screw feet into the floor, and drive out of the hole.", loadTrack: true, muscleGroup: "lower", progression: "compound" },
       { id: "leg-press", name: "Leg Press", sets: 3, repMin: 10, repMax: 12, rest: "90s", cue: "Use a full safe range without low-back rounding.", loadTrack: true, muscleGroup: "lower", progression: "compound" },
@@ -96,6 +126,8 @@ export const PROGRAM = {
     title: "Back Focus + Rear Delts",
     focus: "Back depth, posture, and rear delt width",
     goal: "Strengthen the hinge and build posture-friendly upper back density.",
+    tip: "Treat your deadlift warm-ups like skill practice so the top sets feel automatic.",
+    motivation: "This is posture and power day. Move like someone who owns the bar.",
     exercises: [
       { id: "deadlift", name: "Deadlift", sets: 4, repMin: 5, repMax: 5, rest: "2m", cue: "Brace before the pull and keep the bar glued to you.", loadTrack: true, muscleGroup: "lower", progression: "compound" },
       { id: "wide-pull-up", name: "Wide-Grip Pull-Up / Lat Pulldown", sets: 4, repMin: 6, repMax: 10, rest: "90s", cue: "Start with a full hang and drive elbows down.", loadTrack: true, muscleGroup: "upper", progression: "compound" },

@@ -193,6 +193,38 @@ h3 {
   line-height: 1.55;
 }
 
+.trigger-shell,
+.coach-brief,
+.nutrition-strip {
+  display: grid;
+  gap: 10px;
+}
+
+.trigger-shell {
+  margin: 10px 0 2px;
+}
+
+.trigger-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trigger-chip {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.coach-trigger-message {
+  min-height: 20px;
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
 .hero-actions,
 .tools-grid,
 .session-actions,
@@ -279,7 +311,9 @@ button:hover,
 .history-list,
 .exercise-list,
 .session-form,
-.workout-summary {
+.workout-summary,
+.coach-brief,
+.nutrition-strip {
   display: grid;
   gap: 12px;
 }
@@ -339,6 +373,13 @@ button:hover,
   gap: 12px;
 }
 
+.coach-brief-grid,
+.nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .summary-card-highlight {
   background:
     linear-gradient(145deg, var(--accent-soft), transparent 68%),
@@ -387,6 +428,14 @@ button:hover,
 .exercise-card {
   display: grid;
   gap: 10px;
+}
+
+.brief-card,
+.nutrition-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  padding: 14px;
 }
 
 .exercise-title-row,
@@ -528,6 +577,12 @@ textarea::placeholder {
   padding-left: 18px;
 }
 
+.nutrition-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .toast {
   position: fixed;
   right: 18px;
@@ -577,6 +632,8 @@ textarea::placeholder {
 
   .stats-grid,
   .summary-grid,
+  .coach-brief-grid,
+  .nutrition-grid,
   .session-meta-grid,
   .exercise-grid,
   .exercise-form-inputs {
