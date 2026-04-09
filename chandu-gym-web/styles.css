@@ -430,6 +430,14 @@ button:hover,
   gap: 10px;
 }
 
+.exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+  align-items: center;
+}
+
 .brief-card,
 .nutrition-card {
   border-radius: var(--radius-lg);
@@ -452,6 +460,26 @@ button:hover,
 .exercise-form-title-row h3,
 .history-header h3 {
   margin-bottom: 0;
+}
+
+.exercise-search-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.exercise-search-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 
 .exercise-grid {

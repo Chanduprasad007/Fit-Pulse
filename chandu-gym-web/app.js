@@ -504,6 +504,11 @@ function renderCoachBrief(nextWorkout) {
   `;
 }
 
+function buildExerciseSearchUrl(exerciseName) {
+  const query = `${exerciseName} proper form gym exercise`;
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
 function renderExerciseList(nextWorkout) {
   elements.exerciseList.innerHTML = nextWorkout.exercises
     .map((exercise) => {
@@ -524,7 +529,17 @@ function renderExerciseList(nextWorkout) {
               <h3>${exercise.name}</h3>
               <p>${exercise.cue}</p>
             </div>
-            <span class="mini-tag">${outcomeText}</span>
+            <div class="exercise-actions">
+              <a
+                class="exercise-search-link"
+                href="${buildExerciseSearchUrl(exercise.name)}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Google Form
+              </a>
+              <span class="mini-tag">${outcomeText}</span>
+            </div>
           </div>
           <div class="exercise-grid">
             <div>
@@ -585,6 +600,14 @@ function renderSessionForm(nextWorkout) {
     fragment.querySelector(".exercise-form-meta").textContent =
       `${exercise.sets} sets · ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"} · Rest ${exercise.rest}`;
     fragment.querySelector(".exercise-form-cue").textContent = exercise.cue;
+    const titleRow = fragment.querySelector(".exercise-form-title-row");
+    const searchLink = document.createElement("a");
+    searchLink.className = "exercise-search-link";
+    searchLink.href = buildExerciseSearchUrl(exercise.name);
+    searchLink.target = "_blank";
+    searchLink.rel = "noopener noreferrer";
+    searchLink.textContent = "Google Form";
+    titleRow.insertBefore(searchLink, titleRow.querySelector(".mini-tag"));
 
     const loadInput = fragment.querySelector(".load-input");
     const repsInput = fragment.querySelector(".reps-input");
