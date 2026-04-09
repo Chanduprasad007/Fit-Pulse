@@ -1,0 +1,816 @@
+import {
+  STORAGE_KEY,
+  DAY_ORDER,
+  PROGRAM,
+  TRAINING_PHASES,
+  createInitialState,
+} from "./workout-data.js";
+import { initSupabaseSync } from "./supabase-sync.js";
+
+const state = loadState();
+let authSnapshot = {
+  configured: false,
+  session: null,
+  status: "not_configured",
+  message: "Cloud sync is not configured yet.",
+  lastSyncedAt: null,
+};
+
+const elements = {
+  heroPanel: document.querySelector("#hero-panel"),
+  statsGrid: document.querySelector("#stats-grid"),
+  coachInsights: document.querySelector("#coach-insights"),
+  workoutSummary: document.querySelector("#workout-summary"),
+  exerciseList: document.querySelector("#exercise-list"),
+  sessionForm: document.querySelector("#session-form"),
+  historyList: document.querySelector("#history-list"),
+  upperIncrement: document.querySelector("#upper-increment"),
+  lowerIncrement: document.querySelector("#lower-increment"),
+  importData: document.querySelector("#import-data"),
+  authShell: document.querySelector("#auth-shell"),
+};
+
+const syncManager = initSupabaseSync({
+  getStateSnapshot: cloneStateSnapshot,
+  replaceState: replaceWorkingState,
+  sanitizeState: sanitizeLoadedState,
+  showToast,
+});
+
+syncManager.subscribe((nextSnapshot) => {
+  authSnapshot = nextSnapshot;
+  renderAuthShell();
+});
+
+document.querySelector("#jump-to-log").addEventListener("click", () => {
+  document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+document.querySelector("#print-workout").addEventListener("click", () => window.print());
+document.querySelector("#save-settings").addEventListener("click", saveSettings);
+document.querySelector("#export-data").addEventListener("click", exportData);
+document.querySelector("#reset-data").addEventListener("click", resetData);
+elements.importData.addEventListener("change", importData);
+
+render();
+
+function loadState() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return sanitizeLoadedState(createInitialState());
+    }
+    return sanitizeLoadedState(JSON.parse(raw));
+  } catch {
+    return sanitizeLoadedState(createInitialState());
+  }
+}
+
+function persistState() {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function sanitizeLoadedState(candidate) {
+  const base = createInitialState();
+  return {
+    ...base,
+    ...(candidate || {}),
+    settings: { ...base.settings, ...((candidate || {}).settings || {}) },
+    exerciseStates: (candidate || {}).exerciseStates || {},
+    sessions: Array.isArray((candidate || {}).sessions) ? (candidate || {}).sessions : [],
+    updatedAt: (candidate || {}).updatedAt || (candidate || {}).createdAt || new Date().toISOString(),
+  };
+}
+
+function replaceWorkingState(nextState) {
+  const sanitized = sanitizeLoadedState(nextState);
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, sanitized);
+  persistState();
+  render();
+}
+
+function cloneStateSnapshot() {
+  return sanitizeLoadedState(JSON.parse(JSON.stringify(state)));
+}
+
+function markStateChanged() {
+  state.updatedAt = new Date().toISOString();
+}
+
+function requestCloudSync(reason = "manual") {
+  if (authSnapshot.configured && authSnapshot.session?.user) {
+    syncManager.pushState(reason);
+  }
+}
+
+function getTrainingPhase() {
+  const totalSessions = state.sessions.length;
+  return [...TRAINING_PHASES].reverse().find((phase) => totalSessions >= phase.minSessions);
+}
+
+function getLastSession() {
+  return state.sessions.at(-1) || null;
+}
+
+function getNextDayKey() {
+  const lastSession = getLastSession();
+  if (!lastSession) {
+    return "A";
+  }
+  const lastIndex = DAY_ORDER.indexOf(lastSession.dayKey);
+  return DAY_ORDER[(lastIndex + 1) % DAY_ORDER.length];
+}
+
+function getDayExposureCount(dayKey) {
+  return state.sessions.filter((session) => session.dayKey === dayKey).length;
+}
+
+function getRecentSessions(limit = 6) {
+  return [...state.sessions].slice(-limit).reverse();
+}
+
+function getRecentAverageRpe(limit = 4) {
+  const recent = state.sessions.slice(-limit);
+  if (!recent.length) {
+    return 0;
+  }
+  return recent.reduce((sum, session) => sum + Number(session.overallRpe || 0), 0) / recent.length;
+}
+
+function getWorkoutForDay(dayKey) {
+  const day = PROGRAM[dayKey];
+  const baseExercises = [...day.exercises];
+  const dayExposureCount = getDayExposureCount(dayKey);
+  const unlockedEvolutions = day.evolutions
+    .filter((rule) => dayExposureCount >= rule.threshold)
+    .map((rule) => ({ ...rule.exercise, unlockedAt: rule.threshold }));
+
+  let combined = [...baseExercises, ...unlockedEvolutions];
+  const phase = getTrainingPhase();
+  if (phase.id !== "foundation") {
+    combined = combined.map((exercise, index) => {
+      if (index === 0 && exercise.progression === "compound") {
+        const extraSet = phase.id === "performance" ? 1 : 0;
+        return { ...exercise, sets: exercise.sets + extraSet };
+      }
+      return exercise;
+    });
+  }
+  return { ...day, exercises: combined };
+}
+
+function getExerciseState(exerciseId) {
+  return state.exerciseStates[exerciseId] || {
+    currentLoadKg: null,
+    topRangeStreak: 0,
+    sessionsCompleted: 0,
+    lastOutcome: "new",
+    lastCompletedAt: null,
+  };
+}
+
+function getRecommendedLoad(exercise) {
+  const exerciseState = getExerciseState(exercise.id);
+  if (!exercise.loadTrack) {
+    return exercise.metric === "seconds" ? "Hold for time" : "Bodyweight target";
+  }
+  if (exerciseState.currentLoadKg == null) {
+    return "Find a weight with 1-2 reps in reserve";
+  }
+  return `${exerciseState.currentLoadKg} kg`;
+}
+
+function getIncrementForExercise(exercise) {
+  return exercise.muscleGroup === "lower"
+    ? Number(state.settings.lowerIncrementKg || 5)
+    : Number(state.settings.upperIncrementKg || 2.5);
+}
+
+function roundToIncrement(value, increment) {
+  return Math.round(value / increment) * increment;
+}
+
+function parseRepsString(value) {
+  return value
+    .split(",")
+    .map((chunk) => Number(chunk.trim()))
+    .filter((chunk) => Number.isFinite(chunk) && chunk >= 0);
+}
+
+function evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe) {
+  const exerciseState = getExerciseState(exercise.id);
+  const increment = getIncrementForExercise(exercise);
+  const expectedSets = exercise.sets;
+  const workingSets = reps.slice(0, expectedSets);
+  const hitAllSets = workingSets.length === expectedSets;
+  const hitMin = hitAllSets && workingSets.every((rep) => rep >= exercise.repMin);
+  const hitTop = hitAllSets && workingSets.every((rep) => rep >= exercise.repMax);
+  const averageRep = workingSets.length
+    ? workingSets.reduce((sum, rep) => sum + rep, 0) / workingSets.length
+    : 0;
+
+  let nextLoadKg = performedLoadKg || exerciseState.currentLoadKg || null;
+  let nextStreak = exerciseState.topRangeStreak || 0;
+  let recommendation = "Hold the load and clean up execution.";
+  let outcome = "steady";
+
+  if (!exercise.loadTrack) {
+    outcome = hitTop ? "success" : hitMin ? "steady" : "down";
+    recommendation = hitTop
+      ? "Great control. Add reps or a harder variation next time."
+      : hitMin
+        ? "Solid bodyweight work. Hold the same target next exposure."
+        : "Stay here and own the pattern before progressing.";
+    return {
+      outcome,
+      recommendation,
+      nextLoadKg: null,
+      topRangeStreak: hitTop ? nextStreak + 1 : hitMin ? nextStreak : 0,
+      averageRep,
+      hitMin,
+      hitTop,
+    };
+  }
+
+  if (hitTop && overallRpe <= 9) {
+    nextStreak += 1;
+    outcome = "success";
+    if (nextStreak >= 2 && nextLoadKg != null) {
+      nextLoadKg = roundToIncrement(nextLoadKg + increment, increment);
+      nextStreak = 0;
+      recommendation = `You owned the top of the range twice. Increase to ${nextLoadKg} kg next time.`;
+    } else {
+      recommendation = "Excellent. Repeat this load once more and then bump it.";
+    }
+  } else if (hitMin && overallRpe <= 9.5) {
+    nextStreak = 0;
+    outcome = "steady";
+    recommendation = "Target a few more reps before increasing load.";
+  } else {
+    nextStreak = 0;
+    outcome = "down";
+    if (nextLoadKg != null && overallRpe >= 9.5) {
+      nextLoadKg = roundToIncrement(Math.max(increment, nextLoadKg * 0.95), increment);
+      recommendation = `Fatigue was high. Pull back to about ${nextLoadKg} kg and rebuild cleanly.`;
+    } else {
+      recommendation = "Stay conservative and own the minimum reps with better form.";
+    }
+  }
+
+  return {
+    outcome,
+    recommendation,
+    nextLoadKg,
+    topRangeStreak: nextStreak,
+    averageRep,
+    hitMin,
+    hitTop,
+  };
+}
+
+function buildCoachInsights(nextWorkout) {
+  const phase = getTrainingPhase();
+  const recentAverageRpe = getRecentAverageRpe();
+  const insights = [
+    `${phase.name} phase: ${phase.summary}`,
+    `Next day is ${nextWorkout.label} because the app advances only when you log a completed workout, not by weekday.`,
+  ];
+
+  if (!state.sessions.length) {
+    insights.push("Start with honest loads that leave 1-2 reps in reserve and treat week one as calibration.");
+  } else if (recentAverageRpe >= 9.2) {
+    insights.push("Recent effort is very high. Hold load steady for the next 1-2 sessions and prioritize clean reps.");
+  } else if (recentAverageRpe > 0 && recentAverageRpe <= 8.2) {
+    insights.push("Recovery looks strong. If you keep owning the top of the rep ranges, the app will push load faster.");
+  }
+
+  const unlockedCount = nextWorkout.exercises.length - PROGRAM[getNextDayKey()].exercises.length;
+  if (unlockedCount > 0) {
+    insights.push(`This day has unlocked ${unlockedCount} progression-based accessory ${unlockedCount === 1 ? "exercise" : "exercises"}.`);
+  }
+
+  return insights;
+}
+
+function render() {
+  const dayKey = getNextDayKey();
+  const nextWorkout = getWorkoutForDay(dayKey);
+
+  renderHero(nextWorkout);
+  renderStats(nextWorkout);
+  renderInsights(nextWorkout);
+  renderWorkoutSummary(nextWorkout);
+  renderExerciseList(nextWorkout);
+  renderSessionForm(nextWorkout);
+  renderHistory();
+  renderAuthShell();
+
+  elements.upperIncrement.value = state.settings.upperIncrementKg;
+  elements.lowerIncrement.value = state.settings.lowerIncrementKg;
+}
+
+function renderHero(nextWorkout) {
+  const phase = getTrainingPhase();
+  const lastSession = getLastSession();
+  const nextDayExposure = getDayExposureCount(getNextDayKey());
+  elements.heroPanel.innerHTML = `
+    <div class="hero-panel-grid">
+      <div class="hero-stat">
+        <span class="small-copy">Next Workout</span>
+        <strong>${nextWorkout.label} · ${nextWorkout.title}</strong>
+      </div>
+      <div class="hero-stat">
+        <span class="small-copy">Training Phase</span>
+        <strong>${phase.name}</strong>
+      </div>
+      <div class="hero-stat">
+        <span class="small-copy">Day Exposure</span>
+        <strong>${nextDayExposure + 1}th time running this day</strong>
+      </div>
+      <div class="hero-stat">
+        <span class="small-copy">Last Logged Session</span>
+        <strong>${lastSession ? `${lastSession.dayKey} on ${formatDate(lastSession.date)}` : "No sessions yet"}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderStats(nextWorkout) {
+  const currentWeekCount = state.sessions.filter((session) => isWithinCurrentWeek(session.date)).length;
+  const recentAverageRpe = getRecentAverageRpe();
+  const completionRate = DAY_ORDER.reduce((acc, dayKey) => acc + (getDayExposureCount(dayKey) > 0 ? 1 : 0), 0);
+  const stats = [
+    { label: "Total Sessions", value: state.sessions.length },
+    { label: "Sessions This Week", value: currentWeekCount },
+    { label: "Average Recent RPE", value: recentAverageRpe ? recentAverageRpe.toFixed(1) : "N/A" },
+    { label: "Split Coverage", value: `${completionRate}/5 days touched` },
+  ];
+
+  elements.statsGrid.innerHTML = stats
+    .map(
+      (stat) => `
+        <article class="stat-card">
+          <p class="stat-label">${stat.label}</p>
+          <p class="stat-value">${stat.value}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderInsights(nextWorkout) {
+  elements.coachInsights.innerHTML = buildCoachInsights(nextWorkout)
+    .map(
+      (insight) => `
+        <article class="coach-card">
+          <p class="coach-note">${insight}</p>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderWorkoutSummary(nextWorkout) {
+  const phase = getTrainingPhase();
+  const exposureCount = getDayExposureCount(getNextDayKey());
+  const unlockedExercises = nextWorkout.exercises.filter((exercise) =>
+    PROGRAM[getNextDayKey()].evolutions.some((rule) => rule.exercise.id === exercise.id),
+  );
+
+  elements.workoutSummary.innerHTML = `
+    <div class="summary-grid">
+      <article class="summary-card summary-card-highlight">
+        <p class="eyebrow">${nextWorkout.label}</p>
+        <h3>${nextWorkout.title}</h3>
+        <p>${nextWorkout.focus}</p>
+        <div class="pill-row">
+          <span class="pill">${phase.name}</span>
+          <span class="pill">${nextWorkout.exercises.length} exercises</span>
+          <span class="pill">Exposure ${exposureCount + 1}</span>
+        </div>
+      </article>
+      <article class="summary-card">
+        <p class="micro-label">Coach Direction</p>
+        <p>${nextWorkout.goal}</p>
+        <p class="muted">
+          ${
+            unlockedExercises.length
+              ? `Unlocked today: ${unlockedExercises.map((exercise) => exercise.name).join(", ")}.`
+              : "No extra accessories unlocked yet. Nail the base work and the app will add them."
+          }
+        </p>
+      </article>
+    </div>
+  `;
+}
+
+function renderExerciseList(nextWorkout) {
+  elements.exerciseList.innerHTML = nextWorkout.exercises
+    .map((exercise) => {
+      const exerciseState = getExerciseState(exercise.id);
+      const outcomeText =
+        exerciseState.lastOutcome === "success"
+          ? "progressing"
+          : exerciseState.lastOutcome === "down"
+            ? "recovering"
+            : exerciseState.lastOutcome === "steady"
+              ? "holding"
+              : "new";
+
+      return `
+        <article class="exercise-card">
+          <div class="exercise-title-row">
+            <div>
+              <h3>${exercise.name}</h3>
+              <p>${exercise.cue}</p>
+            </div>
+            <span class="mini-tag">${outcomeText}</span>
+          </div>
+          <div class="exercise-grid">
+            <div>
+              <p class="micro-label">Prescription</p>
+              <strong>${exercise.sets} sets x ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"}</strong>
+            </div>
+            <div>
+              <p class="micro-label">Rest</p>
+              <strong>${exercise.rest}</strong>
+            </div>
+            <div>
+              <p class="micro-label">Target Load</p>
+              <strong>${getRecommendedLoad(exercise)}</strong>
+            </div>
+            <div>
+              <p class="micro-label">Trend</p>
+              <strong>${exerciseState.sessionsCompleted || 0} logged</strong>
+            </div>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderSessionForm(nextWorkout) {
+  const today = new Date().toISOString().slice(0, 10);
+  const template = document.querySelector("#exercise-form-row-template");
+
+  elements.sessionForm.innerHTML = `
+    <div class="session-meta-grid">
+      <label>
+        <span>Date</span>
+        <input name="date" type="date" value="${today}" required />
+      </label>
+      <label>
+        <span>Overall RPE (1-10)</span>
+        <input name="overallRpe" type="number" min="1" max="10" step="0.5" value="8" required />
+      </label>
+    </div>
+    <label>
+      <span>Session Notes</span>
+      <textarea name="notes" placeholder="How did recovery, sleep, pumps, and technique feel today?"></textarea>
+    </label>
+    <div id="exercise-form-list" class="session-form"></div>
+    <div class="session-actions">
+      <button type="submit" class="primary-button">Save Completed Workout</button>
+      <button type="button" id="preview-next" class="ghost-button">Preview Next Day</button>
+    </div>
+  `;
+
+  const exerciseFormList = elements.sessionForm.querySelector("#exercise-form-list");
+
+  nextWorkout.exercises.forEach((exercise) => {
+    const fragment = template.content.cloneNode(true);
+    fragment.querySelector("h3").textContent = exercise.name;
+    fragment.querySelector(".mini-tag").textContent = getRecommendedLoad(exercise);
+    fragment.querySelector(".exercise-form-meta").textContent =
+      `${exercise.sets} sets · ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"} · Rest ${exercise.rest}`;
+    fragment.querySelector(".exercise-form-cue").textContent = exercise.cue;
+
+    const loadInput = fragment.querySelector(".load-input");
+    const repsInput = fragment.querySelector(".reps-input");
+
+    if (!exercise.loadTrack) {
+      loadInput.disabled = true;
+      loadInput.placeholder = "Bodyweight";
+    } else {
+      const recommendedLoad = getExerciseState(exercise.id).currentLoadKg;
+      if (recommendedLoad != null) {
+        loadInput.value = recommendedLoad;
+      }
+    }
+
+    repsInput.placeholder = Array.from({ length: exercise.sets }, () => exercise.repMax).join(",");
+    loadInput.name = `load:${exercise.id}`;
+    repsInput.name = `reps:${exercise.id}`;
+
+    exerciseFormList.appendChild(fragment);
+  });
+
+  elements.sessionForm.onsubmit = (event) => {
+    event.preventDefault();
+    saveSession(nextWorkout, new FormData(elements.sessionForm));
+  };
+
+  elements.sessionForm.querySelector("#preview-next").onclick = () => {
+    const currentIndex = DAY_ORDER.indexOf(getNextDayKey());
+    const previewKey = DAY_ORDER[(currentIndex + 1) % DAY_ORDER.length];
+    const previewWorkout = getWorkoutForDay(previewKey);
+    showToast(`After ${nextWorkout.label}, the next day will be ${previewWorkout.label} · ${previewWorkout.title}.`);
+  };
+}
+
+function saveSession(nextWorkout, formData) {
+  const overallRpe = Number(formData.get("overallRpe"));
+  const date = String(formData.get("date"));
+  const notes = String(formData.get("notes") || "");
+  const sessionId = window.crypto?.randomUUID
+    ? window.crypto.randomUUID()
+    : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const exerciseLogs = nextWorkout.exercises.map((exercise) => {
+    const loadValue = formData.get(`load:${exercise.id}`);
+    const performedLoadKg = loadValue ? Number(loadValue) : null;
+    const reps = parseRepsString(String(formData.get(`reps:${exercise.id}`) || ""));
+    const evaluation = evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe);
+
+    state.exerciseStates[exercise.id] = {
+      currentLoadKg: evaluation.nextLoadKg,
+      topRangeStreak: evaluation.topRangeStreak,
+      sessionsCompleted: (getExerciseState(exercise.id).sessionsCompleted || 0) + 1,
+      lastOutcome: evaluation.outcome,
+      lastCompletedAt: date,
+    };
+
+    return {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      performedLoadKg,
+      reps,
+      outcome: evaluation.outcome,
+      recommendation: evaluation.recommendation,
+      hitMin: evaluation.hitMin,
+      hitTop: evaluation.hitTop,
+    };
+  });
+
+  state.sessions.push({
+    id: sessionId,
+    date,
+    dayKey: getNextDayKey(),
+    overallRpe,
+    notes,
+    exerciseLogs,
+    createdAt: new Date().toISOString(),
+  });
+
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("session_save");
+  showToast(`Saved ${nextWorkout.label} · ${nextWorkout.title}. The app just advanced your cycle.`);
+}
+
+function renderHistory() {
+  const sessions = getRecentSessions();
+  if (!sessions.length) {
+    elements.historyList.innerHTML = `
+      <div class="empty-state">
+        No workouts logged yet. Your first completed session will start the progression engine.
+      </div>
+    `;
+    return;
+  }
+
+  elements.historyList.innerHTML = sessions
+    .map((session) => {
+      const wins = session.exerciseLogs.filter((log) => log.outcome === "success").length;
+      const fatigue = session.exerciseLogs.filter((log) => log.outcome === "down").length;
+      return `
+        <article class="history-card">
+          <div class="history-header">
+            <div>
+              <h3>${session.dayKey} · ${PROGRAM[session.dayKey].title}</h3>
+              <p class="history-meta">${formatDate(session.date)} · RPE ${session.overallRpe}</p>
+            </div>
+            <div class="history-tags">
+              <span class="outcome-chip success">${wins} wins</span>
+              <span class="outcome-chip ${fatigue ? "down" : "steady"}">${fatigue ? `${fatigue} pullbacks` : "stable"}</span>
+            </div>
+          </div>
+          <p class="muted">${session.notes || "No session notes logged."}</p>
+          <div class="history-tags">
+            ${session.exerciseLogs
+              .map(
+                (log) => `
+                  <span class="outcome-chip ${log.outcome === "success" ? "success" : log.outcome === "down" ? "down" : "steady"}">
+                    ${log.exerciseName}: ${log.recommendation}
+                  </span>
+                `,
+              )
+              .join("")}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function saveSettings() {
+  state.settings.upperIncrementKg = Number(elements.upperIncrement.value || 2.5);
+  state.settings.lowerIncrementKg = Number(elements.lowerIncrement.value || 5);
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("settings_update");
+  showToast("Progression settings saved.");
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `chandu-gym-coach-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importData(event) {
+  const file = event.target.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  try {
+    const raw = await file.text();
+    const imported = JSON.parse(raw);
+    const nextState = {
+      ...createInitialState(),
+      ...imported,
+      settings: { ...createInitialState().settings, ...(imported.settings || {}) },
+      exerciseStates: imported.exerciseStates || {},
+      sessions: Array.isArray(imported.sessions) ? imported.sessions : [],
+    };
+    nextState.updatedAt = new Date().toISOString();
+    Object.keys(state).forEach((key) => delete state[key]);
+    Object.assign(state, sanitizeLoadedState(nextState));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    render();
+    requestCloudSync("import");
+    showToast("Workout data imported.");
+  } catch {
+    showToast("That file could not be imported. Use a previous JSON export from this app.");
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function resetData() {
+  const shouldReset = window.confirm("Reset all workout history, progression, and settings?");
+  if (!shouldReset) {
+    return;
+  }
+
+  const freshState = createInitialState();
+  Object.keys(state).forEach((key) => delete state[key]);
+  Object.assign(state, freshState);
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("reset");
+  showToast("All workout data reset.");
+}
+
+function renderAuthShell() {
+  const statusClass =
+    authSnapshot.status === "synced" || authSnapshot.status === "signed_in"
+      ? "ready"
+      : authSnapshot.status === "error"
+        ? "error"
+        : authSnapshot.status === "not_configured" || authSnapshot.status === "signed_out"
+          ? "off"
+          : "waiting";
+
+  if (!authSnapshot.configured) {
+    elements.authShell.innerHTML = `
+      <article class="auth-card">
+        <div class="auth-status-line">
+          <span class="status-pill ${statusClass}">Not Configured</span>
+        </div>
+        <p>${authSnapshot.message}</p>
+        <ol class="config-list">
+          <li>Run the SQL in <code>supabase/schema.sql</code>.</li>
+          <li>Fill in <code>supabase-config.js</code> with your project URL and anon key.</li>
+          <li>Set your GitHub Pages URL in Supabase Auth as both the site URL and redirect URL.</li>
+        </ol>
+      </article>
+    `;
+    return;
+  }
+
+  if (!authSnapshot.session?.user) {
+    elements.authShell.innerHTML = `
+      <article class="auth-card">
+        <div class="auth-status-line">
+          <span class="status-pill ${statusClass}">Signed Out</span>
+          <span class="small-copy">Magic link sign-in</span>
+        </div>
+        <p>${authSnapshot.message}</p>
+        <label>
+          <span>Email</span>
+          <input id="magic-link-email" type="email" placeholder="you@example.com" />
+        </label>
+        <div class="auth-actions">
+          <button id="send-magic-link" class="primary-button">Send Magic Link</button>
+          <button id="retry-cloud-check" class="ghost-button">Refresh Cloud Status</button>
+        </div>
+      </article>
+    `;
+
+    elements.authShell.querySelector("#send-magic-link").onclick = async () => {
+      const emailInput = elements.authShell.querySelector("#magic-link-email");
+      const email = emailInput.value.trim();
+      if (!email) {
+        showToast("Enter your email first so Supabase can send the magic link.");
+        return;
+      }
+      const { error } = await syncManager.sendMagicLink(email);
+      if (!error) {
+        showToast("Magic link sent. Open it from your email to finish sign-in.");
+      }
+    };
+
+    elements.authShell.querySelector("#retry-cloud-check").onclick = () => {
+      syncManager.reconcileRemote("manual");
+    };
+    return;
+  }
+
+  elements.authShell.innerHTML = `
+    <article class="auth-card">
+      <div class="auth-status-line">
+        <span class="status-pill ${statusClass}">${authSnapshot.status.replaceAll("_", " ")}</span>
+        <span class="small-copy">${authSnapshot.session.user.email || "Supabase user"}</span>
+      </div>
+      <p>${authSnapshot.message}</p>
+      <p class="muted">
+        ${
+          authSnapshot.lastSyncedAt
+            ? `Last cloud sync: ${formatDate(authSnapshot.lastSyncedAt)}`
+            : "Cloud sync will timestamp itself after the first successful upload."
+        }
+      </p>
+      <div class="auth-actions">
+        <button id="sync-now" class="primary-button">Sync Now</button>
+        <button id="load-cloud" class="ghost-button">Pull From Cloud</button>
+        <button id="sign-out" class="danger-button">Sign Out</button>
+      </div>
+    </article>
+  `;
+
+  elements.authShell.querySelector("#sync-now").onclick = async () => {
+    const synced = await syncManager.pushState("manual");
+    if (synced) {
+      showToast("Cloud sync complete.");
+    }
+  };
+
+  elements.authShell.querySelector("#load-cloud").onclick = async () => {
+    const synced = await syncManager.reconcileRemote("manual");
+    if (synced) {
+      showToast("Compared local and cloud state.");
+    }
+  };
+
+  elements.authShell.querySelector("#sign-out").onclick = () => {
+    syncManager.signOut();
+  };
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
+}
+
+function isWithinCurrentWeek(value) {
+  const input = new Date(value);
+  const now = new Date();
+  const day = now.getDay();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - day);
+  weekStart.setHours(0, 0, 0, 0);
+  return input >= weekStart;
+}
+
+function showToast(message) {
+  document.querySelector(".toast")?.remove();
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  window.setTimeout(() => toast.remove(), 2800);
+}
