@@ -10,28 +10,39 @@
     <title>Chandu Gym Coach</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body data-theme="dark">
     <div class="page-shell">
-      <header class="hero">
+      <header class="topbar">
+        <div class="brand-cluster">
+          <p class="eyebrow">Fit Pulse</p>
+          <div>
+            <h1>Chandu Gym Coach</h1>
+            <p class="hero-text">
+              Progressive workouts, cleaner tracking, and cloud sync without the clutter.
+            </p>
+          </div>
+        </div>
+        <div class="utility-cluster">
+          <div id="auth-shell" class="auth-shell topbar-auth"></div>
+          <button id="theme-toggle" class="ghost-button theme-toggle" type="button">Dark Mode</button>
+        </div>
+      </header>
+
+      <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">GitHub Pages Workout Helper</p>
-          <h1>Chandu Gym Coach</h1>
-          <p class="hero-text">
-            A personal workout app that rotates your next gym day automatically,
-            progresses load and volume from completed sessions, and grows the plan
-            like a thoughtful trainer instead of a static PDF.
-          </p>
+          <p class="eyebrow">Today</p>
+          <h2>Train the next day in the cycle and let the app handle progression.</h2>
           <div class="hero-actions">
-            <button id="jump-to-log" class="primary-button">Log Today's Session</button>
-            <button id="print-workout" class="ghost-button">Print Workout Card</button>
+            <button id="jump-to-log" class="primary-button">Log Session</button>
+            <button id="print-workout" class="ghost-button">Print Card</button>
           </div>
         </div>
         <div class="hero-panel" id="hero-panel"></div>
-      </header>
+      </section>
 
       <main class="main-grid">
         <section class="panel dashboard-panel">
-          <div class="section-heading">
+          <div class="section-heading compact-heading">
             <p class="eyebrow">Dashboard</p>
             <h2>Coach Snapshot</h2>
           </div>
@@ -39,41 +50,32 @@
           <div id="coach-insights" class="coach-insights"></div>
         </section>
 
-        <section class="panel workout-panel">
-          <div class="section-heading">
+        <section class="panel workout-panel" id="log-panel">
+          <div class="section-heading compact-heading">
             <p class="eyebrow">Next Session</p>
             <h2>Today's Recommended Workout</h2>
           </div>
           <div id="workout-summary" class="workout-summary"></div>
           <div id="exercise-list" class="exercise-list"></div>
-        </section>
-
-        <section class="panel form-panel" id="log-panel">
-          <div class="section-heading">
-            <p class="eyebrow">Progression Input</p>
-            <h2>Log The Session</h2>
+          <div class="log-shell">
+            <div class="section-heading compact-heading">
+              <p class="eyebrow">Log Today</p>
+              <h2>Finish The Session</h2>
+            </div>
+            <form id="session-form" class="session-form compact-form"></form>
           </div>
-          <form id="session-form" class="session-form"></form>
         </section>
 
         <section class="panel history-panel">
-          <div class="section-heading">
+          <div class="section-heading compact-heading">
             <p class="eyebrow">History</p>
             <h2>Recent Sessions</h2>
           </div>
           <div id="history-list" class="history-list"></div>
         </section>
 
-        <section class="panel auth-panel">
-          <div class="section-heading">
-            <p class="eyebrow">Cloud Sync</p>
-            <h2>Supabase Account</h2>
-          </div>
-          <div id="auth-shell" class="auth-shell"></div>
-        </section>
-
         <section class="panel tools-panel">
-          <div class="section-heading">
+          <div class="section-heading compact-heading">
             <p class="eyebrow">Tools</p>
             <h2>Backup And Settings</h2>
           </div>
@@ -86,13 +88,13 @@
               <span>Lower-body increment (kg)</span>
               <input id="lower-increment" type="number" min="1" step="0.5" />
             </label>
-            <button id="save-settings" class="primary-button">Save Progression Settings</button>
-            <button id="export-data" class="ghost-button">Export Workout Data</button>
+            <button id="save-settings" class="primary-button">Save Progression</button>
+            <button id="export-data" class="ghost-button">Export Data</button>
             <label class="ghost-button file-input">
-              <span>Import Workout Data</span>
+              <span>Import Data</span>
               <input id="import-data" type="file" accept="application/json" />
             </label>
-            <button id="reset-data" class="danger-button">Reset All Data</button>
+            <button id="reset-data" class="danger-button">Reset Data</button>
           </div>
         </section>
       </main>

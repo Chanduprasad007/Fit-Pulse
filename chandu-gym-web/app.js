@@ -7,6 +7,7 @@ import {
 } from "./workout-data.js";
 import { initSupabaseSync } from "./supabase-sync.js";
 
+const THEME_KEY = "fit-pulse-theme";
 const state = loadState();
 let authSnapshot = {
   configured: false,
@@ -28,6 +29,7 @@ const elements = {
   lowerIncrement: document.querySelector("#lower-increment"),
   importData: document.querySelector("#import-data"),
   authShell: document.querySelector("#auth-shell"),
+  themeToggle: document.querySelector("#theme-toggle"),
 };
 
 const syncManager = initSupabaseSync({
@@ -42,8 +44,10 @@ syncManager.subscribe((nextSnapshot) => {
   renderAuthShell();
 });
 
+applyTheme(loadTheme());
+
 document.querySelector("#jump-to-log").addEventListener("click", () => {
-  document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#session-form").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.querySelector("#print-workout").addEventListener("click", () => window.print());
@@ -51,6 +55,7 @@ document.querySelector("#save-settings").addEventListener("click", saveSettings)
 document.querySelector("#export-data").addEventListener("click", exportData);
 document.querySelector("#reset-data").addEventListener("click", resetData);
 elements.importData.addEventListener("change", importData);
+elements.themeToggle.addEventListener("click", toggleTheme);
 
 render();
 
@@ -102,6 +107,21 @@ function requestCloudSync(reason = "manual") {
   if (authSnapshot.configured && authSnapshot.session?.user) {
     syncManager.pushState(reason);
   }
+}
+
+function loadTheme() {
+  return window.localStorage.getItem(THEME_KEY) || "dark";
+}
+
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+  elements.themeToggle.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+}
+
+function toggleTheme() {
+  const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  window.localStorage.setItem(THEME_KEY, nextTheme);
+  applyTheme(nextTheme);
 }
 
 function getTrainingPhase() {
@@ -272,25 +292,22 @@ function evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe) {
 function buildCoachInsights(nextWorkout) {
   const phase = getTrainingPhase();
   const recentAverageRpe = getRecentAverageRpe();
-  const insights = [
-    `${phase.name} phase: ${phase.summary}`,
-    `Next day is ${nextWorkout.label} because the app advances only when you log a completed workout, not by weekday.`,
-  ];
+  const insights = [`${phase.name}: ${phase.summary}`];
 
   if (!state.sessions.length) {
-    insights.push("Start with honest loads that leave 1-2 reps in reserve and treat week one as calibration.");
+    insights.push("Start one rep shy of failure and use week one to calibrate loads.");
   } else if (recentAverageRpe >= 9.2) {
-    insights.push("Recent effort is very high. Hold load steady for the next 1-2 sessions and prioritize clean reps.");
+    insights.push("Recent effort is high. Hold loads steady and clean up reps.");
   } else if (recentAverageRpe > 0 && recentAverageRpe <= 8.2) {
-    insights.push("Recovery looks strong. If you keep owning the top of the rep ranges, the app will push load faster.");
+    insights.push("Recovery looks good. Keep owning the top range and load will climb.");
   }
 
   const unlockedCount = nextWorkout.exercises.length - PROGRAM[getNextDayKey()].exercises.length;
   if (unlockedCount > 0) {
-    insights.push(`This day has unlocked ${unlockedCount} progression-based accessory ${unlockedCount === 1 ? "exercise" : "exercises"}.`);
+    insights.push(`Unlocked ${unlockedCount} extra accessory ${unlockedCount === 1 ? "move" : "moves"} for this day.`);
   }
 
-  return insights;
+  return insights.slice(0, 2);
 }
 
 function render() {
@@ -326,7 +343,7 @@ function renderHero(nextWorkout) {
       </div>
       <div class="hero-stat">
         <span class="small-copy">Day Exposure</span>
-        <strong>${nextDayExposure + 1}th time running this day</strong>
+        <strong>Run ${nextDayExposure + 1}</strong>
       </div>
       <div class="hero-stat">
         <span class="small-copy">Last Logged Session</span>
@@ -391,13 +408,13 @@ function renderWorkoutSummary(nextWorkout) {
         </div>
       </article>
       <article class="summary-card">
-        <p class="micro-label">Coach Direction</p>
+        <p class="micro-label">Coach Note</p>
         <p>${nextWorkout.goal}</p>
         <p class="muted">
           ${
             unlockedExercises.length
-              ? `Unlocked today: ${unlockedExercises.map((exercise) => exercise.name).join(", ")}.`
-              : "No extra accessories unlocked yet. Nail the base work and the app will add them."
+              ? `Unlocked: ${unlockedExercises.map((exercise) => exercise.name).join(", ")}.`
+              : "Base day only for now. Nail it and the extras will unlock."
           }
         </p>
       </article>
@@ -468,12 +485,12 @@ function renderSessionForm(nextWorkout) {
     </div>
     <label>
       <span>Session Notes</span>
-      <textarea name="notes" placeholder="How did recovery, sleep, pumps, and technique feel today?"></textarea>
+      <textarea name="notes" placeholder="Quick note on energy, sleep, pump, or pain."></textarea>
     </label>
     <div id="exercise-form-list" class="session-form"></div>
     <div class="session-actions">
-      <button type="submit" class="primary-button">Save Completed Workout</button>
-      <button type="button" id="preview-next" class="ghost-button">Preview Next Day</button>
+      <button type="submit" class="primary-button">Save Session</button>
+      <button type="button" id="preview-next" class="ghost-button">Next Day Preview</button>
     </div>
   `;
 
@@ -572,7 +589,7 @@ function saveSession(nextWorkout, formData) {
 }
 
 function renderHistory() {
-  const sessions = getRecentSessions();
+  const sessions = getRecentSessions(4);
   if (!sessions.length) {
     elements.historyList.innerHTML = `
       <div class="empty-state">
@@ -601,10 +618,11 @@ function renderHistory() {
           <p class="muted">${session.notes || "No session notes logged."}</p>
           <div class="history-tags">
             ${session.exerciseLogs
+              .slice(0, 3)
               .map(
                 (log) => `
                   <span class="outcome-chip ${log.outcome === "success" ? "success" : log.outcome === "down" ? "down" : "steady"}">
-                    ${log.exerciseName}: ${log.recommendation}
+                    ${log.exerciseName}: ${log.outcome}
                   </span>
                 `,
               )
@@ -696,14 +714,9 @@ function renderAuthShell() {
     elements.authShell.innerHTML = `
       <article class="auth-card">
         <div class="auth-status-line">
-          <span class="status-pill ${statusClass}">Not Configured</span>
+          <span class="status-pill ${statusClass}">Cloud Off</span>
         </div>
         <p>${authSnapshot.message}</p>
-        <ol class="config-list">
-          <li>Run the SQL in <code>supabase/schema.sql</code>.</li>
-          <li>Fill in <code>supabase-config.js</code> with your project URL and anon key.</li>
-          <li>Set your GitHub Pages URL in Supabase Auth as both the site URL and redirect URL.</li>
-        </ol>
       </article>
     `;
     return;
@@ -714,16 +727,15 @@ function renderAuthShell() {
       <article class="auth-card">
         <div class="auth-status-line">
           <span class="status-pill ${statusClass}">Signed Out</span>
-          <span class="small-copy">Magic link sign-in</span>
+          <span class="small-copy">Supabase</span>
         </div>
-        <p>${authSnapshot.message}</p>
         <label>
           <span>Email</span>
           <input id="magic-link-email" type="email" placeholder="you@example.com" />
         </label>
         <div class="auth-actions">
-          <button id="send-magic-link" class="primary-button">Send Magic Link</button>
-          <button id="retry-cloud-check" class="ghost-button">Refresh Cloud Status</button>
+          <button id="send-magic-link" class="primary-button">Send Link</button>
+          <button id="retry-cloud-check" class="ghost-button">Refresh</button>
         </div>
       </article>
     `;
@@ -750,20 +762,19 @@ function renderAuthShell() {
   elements.authShell.innerHTML = `
     <article class="auth-card">
       <div class="auth-status-line">
-        <span class="status-pill ${statusClass}">${authSnapshot.status.replaceAll("_", " ")}</span>
+        <span class="status-pill ${statusClass}">Cloud Ready</span>
         <span class="small-copy">${authSnapshot.session.user.email || "Supabase user"}</span>
       </div>
-      <p>${authSnapshot.message}</p>
       <p class="muted">
         ${
           authSnapshot.lastSyncedAt
-            ? `Last cloud sync: ${formatDate(authSnapshot.lastSyncedAt)}`
-            : "Cloud sync will timestamp itself after the first successful upload."
+            ? `Last sync: ${formatDate(authSnapshot.lastSyncedAt)}`
+            : "Cloud sync will mark time after the first upload."
         }
       </p>
       <div class="auth-actions">
-        <button id="sync-now" class="primary-button">Sync Now</button>
-        <button id="load-cloud" class="ghost-button">Pull From Cloud</button>
+        <button id="sync-now" class="primary-button">Sync</button>
+        <button id="load-cloud" class="ghost-button">Pull</button>
         <button id="sign-out" class="danger-button">Sign Out</button>
       </div>
     </article>
