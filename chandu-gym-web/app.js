@@ -11,6 +11,7 @@ import {
 import { initSupabaseSync } from "./supabase-sync.js";
 
 const THEME_KEY = "fit-pulse-theme";
+let deferredInstallPrompt = null;
 const state = loadState();
 let authSnapshot = {
   configured: false,
@@ -34,6 +35,7 @@ const elements = {
   lowerIncrement: document.querySelector("#lower-increment"),
   importData: document.querySelector("#import-data"),
   authShell: document.querySelector("#auth-shell"),
+  installApp: document.querySelector("#install-app"),
   themeToggle: document.querySelector("#theme-toggle"),
   triggerChipList: document.querySelector("#trigger-chip-list"),
   coachTriggerMessage: document.querySelector("#coach-trigger-message"),
@@ -63,6 +65,9 @@ document.querySelector("#export-data").addEventListener("click", exportData);
 document.querySelector("#reset-data").addEventListener("click", resetData);
 elements.importData.addEventListener("change", importData);
 elements.themeToggle.addEventListener("click", toggleTheme);
+elements.installApp.addEventListener("click", installPwa);
+
+setupPwa();
 
 render();
 
@@ -129,6 +134,44 @@ function toggleTheme() {
   const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
   window.localStorage.setItem(THEME_KEY, nextTheme);
   applyTheme(nextTheme);
+}
+
+function setupPwa() {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {
+        showToast("PWA service worker could not register.");
+      });
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    elements.installApp.classList.remove("hidden");
+    elements.installApp.textContent = "Install App";
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    elements.installApp.classList.add("hidden");
+    showToast("Fit Pulse installed on this device.");
+  });
+}
+
+async function installPwa() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const result = await deferredInstallPrompt.userChoice;
+    if (result.outcome === "accepted") {
+      showToast("Install accepted. Android will add Fit Pulse to your device.");
+    }
+    deferredInstallPrompt = null;
+    elements.installApp.classList.add("hidden");
+    return;
+  }
+
+  showToast("On Android Chrome, open the browser menu and tap Install app or Add to Home screen.");
 }
 
 function getTrainingPhase() {

@@ -7,7 +7,14 @@
       name="description"
       content="Chandu's progressive workout helper with smart day rotation, progression, workout logging, and GitHub Pages deployment."
     />
+    <meta name="theme-color" content="#0f141b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Fit Pulse" />
     <title>Chandu Gym Coach</title>
+    <link rel="manifest" href="./app.webmanifest" />
+    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-theme="dark">
@@ -24,6 +31,7 @@
         </div>
         <div class="utility-cluster">
           <div id="auth-shell" class="auth-shell topbar-auth"></div>
+          <button id="install-app" class="ghost-button install-button hidden" type="button">Install App</button>
           <button id="theme-toggle" class="ghost-button theme-toggle" type="button">Dark Mode</button>
         </div>
       </header>

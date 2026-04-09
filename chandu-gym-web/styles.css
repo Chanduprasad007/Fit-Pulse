@@ -279,6 +279,14 @@ button:hover,
   min-width: 116px;
 }
 
+.install-button {
+  min-width: 112px;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .file-input input {
   display: none;
 }
