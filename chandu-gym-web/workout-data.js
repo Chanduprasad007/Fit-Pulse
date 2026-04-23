@@ -1,148 +1,762 @@
+const STORAGE_KEY = "fit-pulse-state";
+const DAY_ORDER = ["A", "B", "C", "D", "E", "F"];
+
+function slugify(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function createExercise(dayKey, name, config) {
+  const {
+    sets,
+    repMin,
+    repMax,
+    cue,
+    rest,
+    metric = "reps",
+    loadTrack = true,
+    muscleGroup = "upper",
+    progression = "accessory",
+  } = config;
+
+  return {
+    id: `${dayKey}-${slugify(name)}`,
+    name,
+    sets,
+    repMin,
+    repMax,
+    metric,
+    cue,
+    rest,
+    loadTrack,
+    muscleGroup,
+    progression,
+  };
+}
+
+function createDay(dayKey, day) {
+  return {
+    dayKey,
+    ...day,
+    exercises: day.exercises.map((exercise) => createExercise(dayKey, exercise.name, exercise)),
+    evolutions: day.evolutions || [],
+  };
+}
+
 const workoutPlan = [
-  // === DAY 1 ===
-  {
+  createDay("A", {
     day: "Day 1",
-    label: "CHEST + TRICEPS",
-    type: "PUSH A",
+    label: "Day 1",
+    title: "Chest + Triceps",
+    type: "Push A",
+    focus: "Heavy pressing first, then chest and triceps volume.",
+    goal: "Build pressing strength and upper-chest size.",
+    motivation: "Own the first compound, then earn the pump.",
+    tip: "Keep one clean rep in reserve early and finish with control.",
     exercises: [
-      { name: "Flat Barbell Bench Press", sets: 4, reps: "6-8", cue: "Primary compound — drive through chest" },
-      { name: "Incline Dumbbell Press", sets: 3, reps: "8-10", cue: "Upper chest focus, control the descent" },
-      { name: "Chest Flyes (Cable/DB)", sets: 3, reps: "12", cue: "Full stretch at bottom, squeeze at top" },
-      { name: "Dips (weighted if possible)", sets: 3, reps: "10-12", cue: "Lean forward slightly to hit lower chest" },
-      // Triceps
-      { name: "Overhead Tricep Extension", sets: 3, reps: "10-12", cue: "Long head emphasis, full range of motion" },
-      { name: "Tricep Pushdowns (rope)", sets: 3, reps: "12-15", cue: "Flare wrists out at bottom" },
-      { name: "Close-Grip Bench Press", sets: 3, reps: "10", cue: "Keep elbows tucked in tight" },
-      // Abs Finisher
-      { name: "Hanging Leg Raises", sets: 3, reps: "12-15", cue: "Control the swing, no momentum" },
-      { name: "Plank", sets: 3, reps: "45-60 sec", cue: "Brace core, don’t let hips drop" }
-    ]
-  },
-
-  // === DAY 2 ===
-  {
+      {
+        name: "Flat Barbell Bench Press",
+        sets: 4,
+        repMin: 6,
+        repMax: 8,
+        cue: "Primary compound lift - drive through chest.",
+        rest: "2-3 min",
+        progression: "compound",
+      },
+      {
+        name: "Incline Dumbbell Press",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Upper chest focus, control the descent.",
+        rest: "90 sec",
+      },
+      {
+        name: "Chest Flyes (Cable/DB)",
+        sets: 3,
+        repMin: 12,
+        repMax: 12,
+        cue: "Full stretch at the bottom, squeeze at the top.",
+        rest: "60-75 sec",
+      },
+      {
+        name: "Dips (weighted if possible)",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Lean forward slightly to hit lower chest.",
+        rest: "90 sec",
+      },
+      {
+        name: "Overhead Tricep Extension",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Long head emphasis, full range of motion.",
+        rest: "60-75 sec",
+      },
+      {
+        name: "Tricep Pushdowns (rope)",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Flare wrists out at the bottom.",
+        rest: "60 sec",
+      },
+      {
+        name: "Close-Grip Bench Press",
+        sets: 3,
+        repMin: 10,
+        repMax: 10,
+        cue: "Keep elbows tucked in tight.",
+        rest: "90 sec",
+      },
+      {
+        name: "Hanging Leg Raises",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Control the swing, no momentum.",
+        rest: "45-60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+      {
+        name: "Plank",
+        sets: 3,
+        repMin: 45,
+        repMax: 60,
+        cue: "Brace the core and keep the hips level.",
+        rest: "45 sec",
+        metric: "seconds",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+    ],
+    evolutions: [],
+  }),
+  createDay("B", {
     day: "Day 2",
-    label: "BACK + BICEPS",
-    type: "PULL A",
+    label: "Day 2",
+    title: "Back + Biceps",
+    type: "Pull A",
+    focus: "Build back thickness and arm volume with clean pulls.",
+    goal: "Stack width, row hard, and keep every rep strict.",
+    motivation: "Lats, upper back, and biceps all get work today.",
+    tip: "Start controlled, finish the contraction, and avoid body swing.",
     exercises: [
-      // Back
-      { name: "Deadlifts", sets: 4, reps: "5-6", cue: "Hip hinge, don’t round lower back" },
-      { name: "Lat Pulldowns (wide grip)", sets: 3, reps: "10-12", cue: "Pull to upper chest, squeeze lats" },
-      { name: "Barbell Rows", sets: 3, reps: "8-10", cue: "To belly button, about 1” pull back" },
-      { name: "Seated Cable Row", sets: 3, reps: "12", cue: "Full stretch forward, pull hard back" },
-      { name: "Dumbbell Pullover", sets: 2, reps: "12", cue: "Great for lat width, keep arms straight" },
-      // Biceps
-      { name: "Barbell / EZ Bar Curls", sets: 3, reps: "10", cue: "No swinging, slow and controlled" },
-      { name: "Hammer Curls", sets: 3, reps: "12", cue: "Brachialis growth, adds arm thickness" }
-    ]
-  },
-
-  // === DAY 3 ===
-  {
+      {
+        name: "Deadlifts",
+        sets: 4,
+        repMin: 5,
+        repMax: 6,
+        cue: "Hip hinge, don't round your lower back.",
+        rest: "2-3 min",
+        progression: "compound",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Lat Pulldowns (wide grip)",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Pull to upper chest, squeeze lats.",
+        rest: "90 sec",
+      },
+      {
+        name: "Barbell Rows",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Row to the belly button, chest up.",
+        rest: "90 sec",
+      },
+      {
+        name: "Seated Cable Row",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Full stretch forward, hard pull back.",
+        rest: "75-90 sec",
+      },
+      {
+        name: "Dumbbell Pullover",
+        sets: 2,
+        repMin: 12,
+        repMax: 12,
+        cue: "Great for lat width, keep arms straight.",
+        rest: "60 sec",
+      },
+      {
+        name: "Barbell / EZ Bar Curls",
+        sets: 3,
+        repMin: 10,
+        repMax: 10,
+        cue: "No swinging, slow and controlled.",
+        rest: "60-75 sec",
+      },
+      {
+        name: "Hammer Curls",
+        sets: 3,
+        repMin: 12,
+        repMax: 12,
+        cue: "Brachialis growth, adds arm thickness.",
+        rest: "60 sec",
+      },
+      {
+        name: "Concentration Curls",
+        sets: 2,
+        repMin: 12,
+        repMax: 15,
+        cue: "Hold peak contraction for one second.",
+        rest: "60 sec",
+      },
+      {
+        name: "Cable Crunches",
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Round the spine, don't just pull down.",
+        rest: "45-60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+      {
+        name: "Bicycle Crunches",
+        sets: 3,
+        repMin: 20,
+        repMax: 20,
+        cue: "Slow and deliberate, full twist.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+    ],
+    evolutions: [],
+  }),
+  createDay("C", {
     day: "Day 3",
-    label: "LEGS + SHOULDERS",
-    type: "LOWER + DELTS A",
+    label: "Day 3",
+    title: "Legs + Shoulders",
+    type: "Lower + Delts A",
+    focus: "Push lower-body strength and build capped delts.",
+    goal: "Keep squat depth honest and shoulders strict.",
+    motivation: "Big quads, solid calves, and controlled shoulder volume.",
+    tip: "Move with full range and don't rush the lighter isolation work.",
     exercises: [
-      // Legs
-      { name: "Front Squat / Back Squat", sets: 4, reps: "6-8", cue: "Depth is parallel or below, knees track" },
-      { name: "Walking Lunges", sets: 3, reps: "10 reps/leg", cue: "Keep torso upright, step wide" },
-      { name: "Leg Press", sets: 3, reps: "10-12", cue: "Don’t lock knees at top" },
-      { name: "Standing Calf Raises", sets: 4, reps: "15-20", cue: "Full stretch at bottom, pause at top" },
-      // Shoulders
-      { name: "Overhead Barbell Press", sets: 3, reps: "8-10", cue: "Compound mass builder for all 3 delt heads" },
-      { name: "Lateral Raises", sets: 3, reps: "12", cue: "Lead with elbow, slight forward lean" },
-      { name: "Front Raises", sets: 3, reps: "12", cue: "Alternate arms, control the lowering" },
-      { name: "Barbell Shrugs", sets: 3, reps: "12-15", cue: "Hold at top, squeeze traps hard" }
-    ]
-  },
-
-  // === DAY 4 ===
-  {
+      {
+        name: "Front Squat / Back Squat",
+        sets: 4,
+        repMin: 6,
+        repMax: 8,
+        cue: "Depth to parallel or below, knees track toes.",
+        rest: "2-3 min",
+        progression: "compound",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Walking Lunges",
+        sets: 3,
+        repMin: 10,
+        repMax: 10,
+        cue: "Keep torso upright, step wide.",
+        rest: "90 sec",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Leg Press",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Don't lock knees at the top.",
+        rest: "90 sec",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Standing Calf Raises",
+        sets: 4,
+        repMin: 15,
+        repMax: 20,
+        cue: "Full stretch at the bottom, pause at the top.",
+        rest: "45-60 sec",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Overhead Barbell Press",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Compound mass builder for all three delt heads.",
+        rest: "90 sec",
+        progression: "compound",
+      },
+      {
+        name: "Lateral Raises",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Lead with elbow, slight forward lean.",
+        rest: "45-60 sec",
+      },
+      {
+        name: "Front Raises",
+        sets: 3,
+        repMin: 12,
+        repMax: 12,
+        cue: "Alternate arms, control the lowering.",
+        rest: "45-60 sec",
+      },
+      {
+        name: "Barbell Shrugs",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Hold at the top and squeeze traps hard.",
+        rest: "60 sec",
+      },
+    ],
+    evolutions: [],
+  }),
+  createDay("D", {
     day: "Day 4",
-    label: "CHEST + TRICEPS",
-    type: "PUSH B",
+    label: "Day 4",
+    title: "Chest + Triceps",
+    type: "Push B",
+    focus: "A second press day with a different angle and more triceps work.",
+    goal: "Keep the chest growing without repeating the exact same pattern.",
+    motivation: "New angles, same standard: clean reps and full control.",
+    tip: "Use the dumbbells and cables to chase range, not ego.",
     exercises: [
-      // Chest
-      { name: "Dumbbell Bench Press", sets: 4, reps: "8-10", cue: "Greater range than barbell, ensure stability" },
-      { name: "Decline Bench Press", sets: 3, reps: "8-10", cue: "Lower chest emphasis, feet secured" },
-      { name: "Pec Deck / Machine Flye", sets: 3, reps: "12-15", cue: "Squeeze at contraction, control rhythm" },
-      { name: "Cable Crossovers", sets: 3, reps: "15", cue: "Arms wide, cross hands at bottom" },
-      // Triceps
-      { name: "Skull Crushers (EZ bar)", sets: 3, reps: "10-12", cue: "Lower to forehead, keep elbows fixed" },
-      { name: "Tricep Kickbacks", sets: 3, reps: "12", cue: "Full extension, elbow above torso" },
-      { name: "Bodyweight Dips", sets: 3, reps: "to failure", cue: "Incline torso for triceps focus" }
-    ]
-  },
-
-  // === DAY 5 ===
-  {
+      {
+        name: "Dumbbell Bench Press",
+        sets: 4,
+        repMin: 8,
+        repMax: 10,
+        cue: "Greater range than barbell, deeper stretch.",
+        rest: "2 min",
+        progression: "compound",
+      },
+      {
+        name: "Decline Bench Press",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Lower chest emphasis, feet secured.",
+        rest: "90 sec",
+      },
+      {
+        name: "Pec Deck / Machine Flye",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Squeeze at centre, constant tension.",
+        rest: "60-75 sec",
+      },
+      {
+        name: "Cable Crossovers",
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Arms wide, cross hands at the bottom.",
+        rest: "60 sec",
+      },
+      {
+        name: "Skull Crushers (EZ bar)",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Lower to forehead, keep elbows fixed.",
+        rest: "60-75 sec",
+      },
+      {
+        name: "Tricep Kickbacks",
+        sets: 3,
+        repMin: 12,
+        repMax: 12,
+        cue: "Full extension, elbow pinned to the side.",
+        rest: "45-60 sec",
+      },
+      {
+        name: "Bodyweight Dips",
+        sets: 3,
+        repMin: 10,
+        repMax: 15,
+        cue: "Upright torso for tricep focus.",
+        rest: "60-75 sec",
+        loadTrack: false,
+      },
+      {
+        name: "Decline Sit-Ups",
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Add weight on the chest as you progress.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+      {
+        name: "Russian Twists",
+        sets: 3,
+        repMin: 20,
+        repMax: 20,
+        cue: "Feet off the floor for extra challenge.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+    ],
+    evolutions: [],
+  }),
+  createDay("E", {
     day: "Day 5",
-    label: "BACK + BICEPS",
-    type: "PULL B",
+    label: "Day 5",
+    title: "Back + Biceps",
+    type: "Pull B",
+    focus: "Go back to width and thickness with a slightly different angle.",
+    goal: "Build back detail and keep biceps work strict.",
+    motivation: "This is the second pull day, so make the rows count.",
+    tip: "Get the stretch, finish the squeeze, and keep the torso honest.",
     exercises: [
-      // Back
-      { name: "Pull-Ups / Assisted Pull-Ups", sets: 4, reps: "6-10", cue: "Best with extra weight, work up to bodyweight" },
-      { name: "T-Bar Rows", sets: 3, reps: "8-10", cue: "Mid-back thickness, squeeze hard at top" },
-      { name: "Lat Pulldown (close grip)", sets: 3, reps: "12-15", cue: "Different angle vs wide grip" },
-      { name: "Wide-Grip Cable Row", sets: 3, reps: "10-12", cue: "Rear delt activation and mid range" },
-      // Biceps
-      { name: "Incline Dumbbell Curls", sets: 3, reps: "10-12", cue: "Stretches long head, great peak builder" },
-      { name: "Preacher Curls", sets: 3, reps: "10-12", cue: "Eliminates cheating, strict form only" },
-      { name: "Cable Curls", sets: 3, reps: "12-15", cue: "Constant tension throughout movement" },
-      // Abs Finisher
-      { name: "Hanging Knee Raises", sets: 3, reps: "15", cue: "Progress to full leg raises over time" },
-      { name: "Ab Wheel Rollout", sets: 3, reps: "8-10", cue: "Incredible for deep core strength" }
-    ]
-  },
-
-  // === DAY 6 ===
-  {
+      {
+        name: "Pull-Ups / Assisted Pull-Ups",
+        sets: 4,
+        repMin: 6,
+        repMax: 10,
+        cue: "Best lat width builder, work up to bodyweight.",
+        rest: "2 min",
+        progression: "compound",
+        loadTrack: false,
+      },
+      {
+        name: "T-Bar Rows",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Mid-back thickness, squeeze hard at the top.",
+        rest: "90 sec",
+      },
+      {
+        name: "Lat Pulldown (close grip)",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Different angle versus the wide grip.",
+        rest: "75-90 sec",
+      },
+      {
+        name: "Wide-Grip Cable Row",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Rear delt activation at the end range.",
+        rest: "75 sec",
+      },
+      {
+        name: "Incline Dumbbell Curls",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Stretches long head, great peak builder.",
+        rest: "60 sec",
+      },
+      {
+        name: "Preacher Curls",
+        sets: 3,
+        repMin: 10,
+        repMax: 12,
+        cue: "Eliminates cheating, strict form only.",
+        rest: "60 sec",
+      },
+      {
+        name: "Cable Curls",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Constant tension throughout movement.",
+        rest: "60 sec",
+      },
+      {
+        name: "Hanging Knee Raises",
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Progress to full leg raises over time.",
+        rest: "45-60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+      {
+        name: "Ab Wheel Rollout",
+        sets: 3,
+        repMin: 8,
+        repMax: 10,
+        cue: "Incredible for deep core strength.",
+        rest: "60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      },
+    ],
+    evolutions: [],
+  }),
+  createDay("F", {
     day: "Day 6",
-    label: "SHOULDERS + LEGS",
-    type: "UPPER + LOWER B",
+    label: "Day 6",
+    title: "Shoulders + Legs",
+    type: "Upper + Lower B",
+    focus: "Finish the week with shoulder density and a lower-body reset.",
+    goal: "Hit the delts hard, then finish the week with legs.",
+    motivation: "Different press angle, different leg emphasis, same discipline.",
+    tip: "Stay strict on the presses and keep the lower-body work smooth.",
     exercises: [
-      // Shoulders
-      { name: "Military Press (seated)", sets: 4, reps: "6-8", cue: "Biggest shoulder mass builder" },
-      { name: "Arnold Press", sets: 3, reps: "10", cue: "Full rotation, hits all 3 delt heads" },
-      { name: "Side Lateral Raises", sets: 3, reps: "12", cue: "Critical for wide shoulders" },
-      { name: "Face Pulls (cable)", sets: 3, reps: "15", cue: "Rear delt + rotator cuff health" },
-      // Legs
-      { name: "Back Squats", sets: 4, reps: "8-12", cue: "Full depth, opposite focus from Day 3" },
-      { name: "Seated Leg Extension", sets: 3, reps: "15", cue: "VMO/quad isolation" },
-      { name: "Lying Leg Curls", sets: 3, reps: "12", cue: "Hit hamstring contraction" },
-      { name: "Seated Calf Raises", sets: 4, reps: "15-20", cue: "Soleus focused, different from standing" }
-    ]
-  },
+      {
+        name: "Military Press (seated)",
+        sets: 4,
+        repMin: 6,
+        repMax: 8,
+        cue: "Biggest shoulder mass builder.",
+        rest: "2 min",
+        progression: "compound",
+      },
+      {
+        name: "Arnold Press",
+        sets: 3,
+        repMin: 10,
+        repMax: 10,
+        cue: "Full rotation, hits all three delt heads.",
+        rest: "90 sec",
+      },
+      {
+        name: "Side Lateral Raises",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "Critical for a wider shoulder look.",
+        rest: "45-60 sec",
+      },
+      {
+        name: "Face Pulls (cable)",
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Rear delt and rotator cuff health.",
+        rest: "45-60 sec",
+      },
+      {
+        name: "Back Squats",
+        sets: 4,
+        repMin: 8,
+        repMax: 12,
+        cue: "Full depth, opposite focus from Day 3.",
+        rest: "2-3 min",
+        progression: "compound",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Seated Leg Extension",
+        sets: 3,
+        repMin: 12,
+        repMax: 15,
+        cue: "VMO quad isolation.",
+        rest: "60 sec",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Lying Leg Curls",
+        sets: 3,
+        repMin: 12,
+        repMax: 12,
+        cue: "Full hamstring contraction.",
+        rest: "60 sec",
+        muscleGroup: "lower",
+      },
+      {
+        name: "Seated Calf Raises",
+        sets: 4,
+        repMin: 15,
+        repMax: 20,
+        cue: "Soleus focused, different from standing.",
+        rest: "45-60 sec",
+        muscleGroup: "lower",
+      },
+    ],
+    evolutions: [],
+  }),
+];
 
-  // === ABS DEDICATED BLOCKS & TIPS ===
+const BONUS_WORKOUTS = [
   {
     day: "Abs - Dedicated Block",
-    label: "Abs Only",
+    label: "Bonus",
+    title: "Abs Only",
+    type: "Core block",
+    focus: "Optional dedicated core work for a separate session.",
+    goal: "Build abdominal strength and stability.",
+    motivation: "Use this when you want a cleaner core-only day.",
+    tip: "Add it on a recovery day or after a lighter session.",
     exercises: [
-      { name: "Weighted Plank", sets: 3, reps: "45-60 sec", cue: "Add plate on back when comfortable" },
-      { name: "Cable Crunches", sets: 3, reps: "15", cue: "Heaviest abs movement, add load weekly" },
-      { name: "Flat Bench Leg Raises", sets: 3, reps: "15", cue: "Lower abs focus, control the lowering" },
-      { name: "Side Plank", sets: "2 sets/side", reps: "30-45 sec", cue: "Oblique stability and definition" }
-    ]
+      createExercise("bonus-a", "Weighted Plank", {
+        sets: 3,
+        repMin: 45,
+        repMax: 60,
+        cue: "Add a plate on your back when comfortable.",
+        rest: "45 sec",
+        metric: "seconds",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-a", "Cable Crunches", {
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Heaviest abs movement, add load weekly.",
+        rest: "45-60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-a", "Flat Bench Leg Raises", {
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Lower abs focus, control the lowering.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-a", "Side Plank", {
+        sets: 2,
+        repMin: 30,
+        repMax: 45,
+        cue: "Oblique stability and definition.",
+        rest: "30 sec",
+        metric: "seconds",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+    ],
   },
   {
     day: "Abs - Finisher Block",
-    label: "Abs Finisher",
+    label: "Bonus",
+    title: "Abs Finisher",
+    type: "Core finisher",
+    focus: "Shorter core finisher when you want extra abdominal work.",
+    goal: "Keep the finishers simple and repeatable.",
+    motivation: "A few hard sets here goes a long way.",
+    tip: "Use this as a finisher instead of adding more arm work.",
     exercises: [
-      { name: "Decline Sit-Ups", sets: 3, reps: "15", cue: "Add weight on chest as you progress" },
-      { name: "Russian Twists", sets: 3, reps: "20", cue: "Feel oblique for extra challenge" },
-      { name: "Cable Crunches", sets: 3, reps: "15", cue: "From the spine, don’t just pull down" },
-      { name: "Bicycle Crunches", sets: 3, reps: "20", cue: "Slow and deliberate, full twist" }
-    ]
-  }
+      createExercise("bonus-b", "Decline Sit-Ups", {
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Add weight on the chest as you progress.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-b", "Russian Twists", {
+        sets: 3,
+        repMin: 20,
+        repMax: 20,
+        cue: "Feel the obliques for the extra challenge.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-b", "Cable Crunches", {
+        sets: 3,
+        repMin: 15,
+        repMax: 15,
+        cue: "Move from the spine, don't just pull down.",
+        rest: "45-60 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+      createExercise("bonus-b", "Bicycle Crunches", {
+        sets: 3,
+        repMin: 20,
+        repMax: 20,
+        cue: "Slow and deliberate, full twist.",
+        rest: "45 sec",
+        loadTrack: false,
+        muscleGroup: "core",
+      }),
+    ],
+  },
 ];
 
-// Optional: Helpful program notes
-const programNotes = {
-  progressiveOverload: "Add 2.5-5kg when you hit top of rep range 2 sessions in a row",
-  warmup: "5-10 min cardio + 2 lighter sets on first compound lift",
-  nutrition: "300-500 kcal surplus. Nakpro whey post-workout. Creatine 5g daily.",
-  sleep: "7-8 hours non-negotiable. Muscle is built during recovery."
+const PROGRAM = Object.fromEntries(workoutPlan.map((day) => [day.dayKey, day]));
+
+const TRAINING_PHASES = [
+  {
+    id: "foundation",
+    minSessions: 0,
+    name: "Foundation",
+    summary: "Own the movement patterns and lock in consistent execution.",
+  },
+  {
+    id: "volume",
+    minSessions: 6,
+    name: "Volume",
+    summary: "Add clean volume once recovery and form stay steady.",
+  },
+  {
+    id: "performance",
+    minSessions: 18,
+    name: "Performance",
+    summary: "Push loads harder while keeping technique repeatable.",
+  },
+];
+
+const TRAINER_PROFILE = {
+  athlete: "80 kg / 6'1\" / Push / Pull / Legs x2",
+  goal: "Bulk, width, and mass with a full rest day every week.",
+  gym: "Commercial gym / Cult",
+  schedule: "Day 7 is full rest",
 };
 
-export { workoutPlan, programNotes };
+const NUTRITION_SNAPSHOT = [
+  "300-500 kcal surplus",
+  "160-200 g protein/day",
+  "Creatine 5 g daily",
+  "7-8 hours sleep",
+];
+
+const GYM_TRIGGER_CHIPS = ["Gym time", "At the gym", "Going to Cult", "What's my workout?"];
+
+const programNotes = {
+  progressiveOverload: "Add 2.5-5 kg when you hit the top of the range two sessions in a row.",
+  warmup: "5-10 minutes of cardio plus two lighter sets on the first compound lift.",
+  nutrition: "Keep the surplus at 300-500 kcal and keep protein anchored around 160-200 g.",
+  sleep: "Seven to eight hours is non-negotiable if the split is going to work.",
+};
+
+function createInitialState() {
+  return {
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    settings: {
+      upperIncrementKg: 2.5,
+      lowerIncrementKg: 5,
+    },
+    exerciseStates: {},
+    sessions: [],
+  };
+}
+
+export {
+  STORAGE_KEY,
+  DAY_ORDER,
+  PROGRAM,
+  TRAINING_PHASES,
+  TRAINER_PROFILE,
+  NUTRITION_SNAPSHOT,
+  GYM_TRIGGER_CHIPS,
+  BONUS_WORKOUTS,
+  createInitialState,
+  workoutPlan,
+  programNotes,
+};
