@@ -738,6 +738,9 @@ function createInitialState() {
   return {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ui: {
+      selectedWorkoutDayKey: null,
+    },
     settings: {
       upperIncrementKg: 2.5,
       lowerIncrementKg: 5,
