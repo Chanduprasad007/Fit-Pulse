@@ -5,6 +5,7 @@ import {
   TRAINING_PHASES,
   TRAINER_PROFILE,
   NUTRITION_SNAPSHOT,
+  programNotes,
   GYM_TRIGGER_CHIPS,
   createInitialState,
 } from "./workout-data.js";
@@ -24,12 +25,11 @@ let authSnapshot = {
 const elements = {
   heroPanel: document.querySelector("#hero-panel"),
   statsGrid: document.querySelector("#stats-grid"),
+  weekSplit: document.querySelector("#week-split"),
   coachInsights: document.querySelector("#coach-insights"),
   workoutSummary: document.querySelector("#workout-summary"),
   coachBrief: document.querySelector("#coach-brief"),
-  workoutLogBar: document.querySelector("#workout-log-bar"),
   exerciseList: document.querySelector("#exercise-list"),
-  historyList: document.querySelector("#history-list"),
   nutritionStrip: document.querySelector("#nutrition-strip"),
   upperIncrement: document.querySelector("#upper-increment"),
   lowerIncrement: document.querySelector("#lower-increment"),
@@ -55,8 +55,8 @@ syncManager.subscribe((nextSnapshot) => {
 
 applyTheme(loadTheme());
 
-document.querySelector("#jump-to-log").addEventListener("click", () => {
-  document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+document.querySelector("#jump-to-workout").addEventListener("click", () => {
+  document.querySelector("#workout-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.querySelector("#print-workout").addEventListener("click", () => window.print());
@@ -348,16 +348,16 @@ function buildCoachInsights(nextWorkout) {
   const insights = [`${phase.name}: ${phase.summary}`];
 
   if (!state.sessions.length) {
-    insights.push("Start one rep shy of failure and use week one to calibrate loads.");
+    insights.push("Use week one to calibrate loads.");
   } else if (recentAverageRpe >= 9.2) {
-    insights.push("Recent effort is high. Hold loads steady and clean up reps.");
+    insights.push("Recent effort is high. Hold loads steady.");
   } else if (recentAverageRpe > 0 && recentAverageRpe <= 8.2) {
-    insights.push("Recovery looks good. Keep owning the top range and load will climb.");
+    insights.push("Recovery looks good. Push the top range.");
   }
 
   const unlockedCount = nextWorkout.exercises.length - PROGRAM[getNextDayKey()].exercises.length;
   if (unlockedCount > 0) {
-    insights.push(`Unlocked ${unlockedCount} extra accessory ${unlockedCount === 1 ? "move" : "moves"} for this day.`);
+    insights.push(`+${unlockedCount} extra accessory ${unlockedCount === 1 ? "move" : "moves"} unlocked.`);
   }
 
   return insights.slice(0, 2);
@@ -370,13 +370,12 @@ function render() {
   renderHero(nextWorkout);
   renderTriggerChips(nextWorkout);
   renderStats(nextWorkout);
+  renderWeekSplit(nextWorkout);
   renderInsights(nextWorkout);
   renderNutritionStrip();
   renderWorkoutSummary(nextWorkout);
   renderCoachBrief(nextWorkout);
-  renderWorkoutLogBar(nextWorkout);
   renderExerciseList(nextWorkout);
-  renderHistory();
   renderAuthShell();
 
   elements.upperIncrement.value = state.settings.upperIncrementKg;
@@ -389,22 +388,26 @@ function renderHero(nextWorkout) {
   const nextDayExposure = getDayExposureCount(getNextDayKey());
   elements.heroPanel.innerHTML = `
     <div class="hero-panel-grid">
-      <div class="hero-stat">
+      <article class="hero-stat hero-stat-wide">
         <span class="small-copy">Next Workout</span>
-        <strong>${nextWorkout.label} | ${nextWorkout.title}</strong>
-      </div>
-      <div class="hero-stat">
+        <strong>${nextWorkout.label} · ${nextWorkout.title}</strong>
+        <p class="hero-stat-note">${nextWorkout.focus}</p>
+      </article>
+      <article class="hero-stat">
         <span class="small-copy">Training Phase</span>
         <strong>${phase.name}</strong>
-      </div>
-      <div class="hero-stat">
-        <span class="small-copy">Day Exposure</span>
-        <strong>Run ${nextDayExposure + 1}</strong>
-      </div>
-      <div class="hero-stat">
+        <p class="hero-stat-note">${phase.summary}</p>
+      </article>
+      <article class="hero-stat">
+        <span class="small-copy">Progress Rule</span>
+        <strong>+${state.settings.upperIncrementKg}/${state.settings.lowerIncrementKg} kg</strong>
+        <p class="hero-stat-note">${programNotes.progressiveOverload}</p>
+      </article>
+      <article class="hero-stat">
         <span class="small-copy">Last Logged Session</span>
         <strong>${lastSession ? `${lastSession.dayKey} on ${formatDate(lastSession.date)}` : "No sessions yet"}</strong>
-      </div>
+        <p class="hero-stat-note">Next run: ${nextWorkout.label} · Exposure ${nextDayExposure + 1}</p>
+      </article>
     </div>
   `;
 }
@@ -427,7 +430,7 @@ function renderTriggerChips(nextWorkout) {
     button.onclick = () => {
       const trigger = button.dataset.trigger || "Gym today";
       elements.coachTriggerMessage.textContent = buildTriggerMessage(trigger, nextWorkout);
-      document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector("#workout-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     };
   });
 }
@@ -453,7 +456,7 @@ function renderStats(nextWorkout) {
     { label: "Total Sessions", value: state.sessions.length },
     { label: "Sessions This Week", value: currentWeekCount },
     { label: "Average Recent RPE", value: recentAverageRpe ? recentAverageRpe.toFixed(1) : "N/A" },
-    { label: "Split Coverage", value: `${completionRate}/5 days touched` },
+    { label: "Split Coverage", value: `${completionRate}/${DAY_ORDER.length} days touched` },
   ];
 
   elements.statsGrid.innerHTML = stats
@@ -466,6 +469,37 @@ function renderStats(nextWorkout) {
       `,
     )
     .join("");
+}
+
+function renderWeekSplit(nextWorkout) {
+  const activeDayKey = getNextDayKey();
+  elements.weekSplit.innerHTML = DAY_ORDER.map((dayKey) => {
+    const workout = getWorkoutForDay(dayKey);
+    const exposureCount = getDayExposureCount(dayKey);
+    const previewExercises = workout.exercises.slice(0, 2);
+    const remainingCount = Math.max(0, workout.exercises.length - previewExercises.length);
+
+    return `
+      <article class="split-card ${dayKey === activeDayKey ? "is-active" : ""}">
+        <div class="split-card-head">
+          <div>
+            <p class="micro-label">${workout.label}</p>
+            <h3>${workout.title}</h3>
+          </div>
+          <span class="split-badge">${dayKey === activeDayKey ? "Next" : `${exposureCount}x`}</span>
+        </div>
+        <p class="split-copy">${workout.focus}</p>
+        <div class="split-meta">
+          <span>${workout.exercises.length} moves</span>
+          <span>${workout.type}</span>
+        </div>
+        <div class="split-tags">
+          ${previewExercises.map((exercise) => `<span class="pill split-pill">${exercise.name}</span>`).join("")}
+          ${remainingCount > 0 ? `<span class="pill split-pill">+${remainingCount} more</span>` : ""}
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
 function renderInsights(nextWorkout) {
@@ -483,16 +517,16 @@ function renderInsights(nextWorkout) {
 function renderNutritionStrip() {
   elements.nutritionStrip.innerHTML = `
     <article class="nutrition-card">
-      <p class="micro-label">Chandu Context</p>
+      <p class="micro-label">Athlete</p>
       <p>${TRAINER_PROFILE.athlete}</p>
       <p class="muted">${TRAINER_PROFILE.goal}</p>
-      <p class="muted">${TRAINER_PROFILE.gym} | ${TRAINER_PROFILE.schedule}</p>
     </article>
     <article class="nutrition-card">
-      <p class="micro-label">Nutrition Snapshot</p>
+      <p class="micro-label">Fuel Stack</p>
       <div class="nutrition-list">
         ${NUTRITION_SNAPSHOT.map((item) => `<span class="pill">${item}</span>`).join("")}
       </div>
+      <p class="muted">${TRAINER_PROFILE.gym} · ${TRAINER_PROFILE.schedule}</p>
     </article>
   `;
 }
@@ -507,17 +541,20 @@ function renderWorkoutSummary(nextWorkout) {
   elements.workoutSummary.innerHTML = `
     <div class="summary-grid">
       <article class="summary-card summary-card-highlight">
-        <p class="eyebrow">${nextWorkout.label}</p>
+        <div class="summary-head">
+          <p class="eyebrow">${nextWorkout.label}</p>
+          <span class="status-pill ready">${phase.name}</span>
+        </div>
         <h3>${nextWorkout.title}</h3>
         <p>${nextWorkout.focus}</p>
         <div class="pill-row">
-          <span class="pill">${phase.name}</span>
           <span class="pill">${nextWorkout.exercises.length} moves</span>
           <span class="pill">Exposure ${exposureCount + 1}</span>
+          <span class="pill">${getRecentSessions(1).length ? "History on file" : "Start fresh"}</span>
         </div>
       </article>
       <article class="summary-card">
-        <p class="micro-label">Coach Note</p>
+        <p class="micro-label">Session Goal</p>
         <p>${nextWorkout.goal}</p>
         <p class="muted">
           ${
@@ -543,8 +580,8 @@ function renderCoachBrief(nextWorkout) {
       </article>
       <article class="brief-card">
         <p class="micro-label">Execution Focus</p>
-        <p>Stay in the ${phase.name.toLowerCase()} mindset: clean reps first, progression second.</p>
-        <p class="muted">Add a little load or a rep every 1-2 weeks when form stays sharp.</p>
+        <p>${phase.summary}</p>
+        <p class="muted">Clean reps first. Add a little load or a rep when form stays sharp.</p>
       </article>
     </div>
   `;
@@ -555,75 +592,10 @@ function buildExerciseSearchUrl(exerciseName) {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }
 
-function formatDraftReps(reps) {
-  if (!Array.isArray(reps) || !reps.length) {
-    return "Tap + to start logging reps.";
-  }
-
-  return reps.map((rep) => `${rep}`).join(" · ");
-}
-
-function setExerciseDraftState(exerciseId, patch) {
-  const current = getExerciseState(exerciseId);
-  state.exerciseStates[exerciseId] = {
-    ...current,
-    ...patch,
-  };
-  markStateChanged();
-  persistState();
-}
-
-function getLoggedRepsForExercise(exercise, exerciseState) {
-  const draftReps = Array.isArray(exerciseState.draftReps) ? exerciseState.draftReps : [];
-  if (draftReps.length) {
-    return draftReps;
-  }
-
-  const fallback = parseRepsString(String(exerciseState.draftRepEntry || ""));
-  return fallback.length ? fallback : [];
-}
-
-function renderWorkoutLogBar(nextWorkout) {
-  const today = new Date().toISOString().slice(0, 10);
-  const totalDraftSets = nextWorkout.exercises.reduce((count, exercise) => {
-    const exerciseState = getExerciseState(exercise.id);
-    return count + getLoggedRepsForExercise(exercise, exerciseState).length;
-  }, 0);
-
-  elements.workoutLogBar.innerHTML = `
-    <div class="session-meta-grid">
-      <label>
-        <span>Date</span>
-        <input name="date" type="date" value="${today}" required />
-      </label>
-      <label>
-        <span>Overall RPE (1-10)</span>
-        <input name="overallRpe" type="number" min="1" max="10" step="0.5" value="8" required />
-      </label>
-    </div>
-    <label class="session-notes-field">
-      <span>Session Notes</span>
-      <textarea name="notes" placeholder="Energy, sleep, pump, or pain."></textarea>
-    </label>
-    <div class="workout-logbar-actions">
-      <button type="submit" class="primary-button">Save Workout</button>
-      <span class="mini-tag">${totalDraftSets} set${totalDraftSets === 1 ? "" : "s"} logged</span>
-    </div>
-  `;
-
-  elements.workoutLogBar.onsubmit = (event) => {
-    event.preventDefault();
-    saveSession(nextWorkout, new FormData(elements.workoutLogBar));
-  };
-}
-
 function renderExerciseList(nextWorkout) {
   elements.exerciseList.innerHTML = nextWorkout.exercises
     .map((exercise) => {
       const exerciseState = getExerciseState(exercise.id);
-      const loggedReps = getLoggedRepsForExercise(exercise, exerciseState);
-      const draftLoadKg = exerciseState.draftLoadKg ?? exerciseState.currentLoadKg ?? "";
-      const draftRepEntry = exerciseState.draftRepEntry || exercise.repMax;
       const outcomeText =
         exerciseState.lastOutcome === "success"
           ? "up"
@@ -634,14 +606,13 @@ function renderExerciseList(nextWorkout) {
               : "new";
 
       return `
-        <article class="exercise-card" data-exercise-id="${exercise.id}">
+        <article class="exercise-card">
           <div class="exercise-title-row">
             <div>
               <h3>${exercise.name}</h3>
               <p>${exercise.cue}</p>
             </div>
             <div class="exercise-actions">
-              <button type="button" class="exercise-plus-button" data-add-reps="${exercise.id}">+</button>
               <a
                 class="exercise-search-link"
                 href="${buildExerciseSearchUrl(exercise.name)}"
@@ -671,97 +642,10 @@ function renderExerciseList(nextWorkout) {
               <strong>${exerciseState.sessionsCompleted || 0} logged</strong>
             </div>
           </div>
-          <div class="exercise-log-inline">
-            <label class="inline-field">
-              <span>Load (kg)</span>
-              <input
-                class="load-input"
-                type="number"
-                step="0.5"
-                min="0"
-                ${exercise.loadTrack ? "" : "disabled"}
-                value="${draftLoadKg}"
-                placeholder="${exercise.loadTrack ? "Add load" : "Bodyweight"}"
-              />
-            </label>
-            <label class="inline-field">
-              <span>Reps</span>
-              <input class="reps-input" type="number" min="1" step="1" value="${draftRepEntry}" />
-            </label>
-          </div>
-          <div class="rep-chip-row">
-            ${
-              loggedReps.length
-                ? loggedReps.map((rep) => `<span class="rep-chip">${rep}</span>`).join("")
-                : `<span class="muted">Tap + to start logging reps.</span>`
-            }
-          </div>
         </article>
       `;
     })
     .join("");
-
-  elements.exerciseList.querySelectorAll(".load-input").forEach((input) => {
-    input.onchange = () => {
-      const card = input.closest(".exercise-card");
-      const exerciseId = card?.dataset.exerciseId;
-      if (!exerciseId) {
-        return;
-      }
-
-      setExerciseDraftState(exerciseId, {
-        draftLoadKg: input.disabled || input.value === "" ? null : Number(input.value),
-      });
-    };
-  });
-
-  elements.exerciseList.querySelectorAll(".reps-input").forEach((input) => {
-    input.onchange = () => {
-      const card = input.closest(".exercise-card");
-      const exerciseId = card?.dataset.exerciseId;
-      if (!exerciseId) {
-        return;
-      }
-
-      setExerciseDraftState(exerciseId, {
-        draftRepEntry: input.value,
-      });
-    };
-  });
-
-  elements.exerciseList.querySelectorAll(".exercise-plus-button").forEach((button) => {
-    button.onclick = () => {
-      const exerciseId = button.dataset.addReps;
-      if (!exerciseId) {
-        return;
-      }
-
-      const card = button.closest(".exercise-card");
-      const repsInput = card?.querySelector(".reps-input");
-      const loadInput = card?.querySelector(".load-input");
-      const repsValue = Number(repsInput?.value || "");
-      if (!Number.isFinite(repsValue) || repsValue <= 0) {
-        showToast("Enter reps first, then tap +.");
-        return;
-      }
-
-      const exerciseState = getExerciseState(exerciseId);
-      const nextDraftReps = [...(Array.isArray(exerciseState.draftReps) ? exerciseState.draftReps : []), repsValue];
-
-      setExerciseDraftState(exerciseId, {
-        draftReps: nextDraftReps,
-        draftRepEntry: String(repsValue),
-        draftLoadKg:
-          loadInput && !loadInput.disabled && loadInput.value !== ""
-            ? Number(loadInput.value)
-            : exerciseState.draftLoadKg ?? exerciseState.currentLoadKg ?? null,
-      });
-
-      renderExerciseList(nextWorkout);
-      renderWorkoutLogBar(nextWorkout);
-      showToast(`Added ${repsValue} reps.`);
-    };
-  });
 }
 
 function saveSession(nextWorkout, formData) {
@@ -773,28 +657,17 @@ function saveSession(nextWorkout, formData) {
     : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   const exerciseLogs = nextWorkout.exercises.map((exercise) => {
-    const exerciseState = getExerciseState(exercise.id);
-    const reps = getLoggedRepsForExercise(exercise, exerciseState);
-    let performedLoadKg = null;
-    if (exercise.loadTrack) {
-      if (exerciseState.draftLoadKg != null && exerciseState.draftLoadKg !== "") {
-        performedLoadKg = Number(exerciseState.draftLoadKg);
-      } else if (exerciseState.currentLoadKg != null) {
-        performedLoadKg = Number(exerciseState.currentLoadKg);
-      }
-    }
+    const loadValue = formData.get(`load:${exercise.id}`);
+    const performedLoadKg = loadValue ? Number(loadValue) : null;
+    const reps = parseRepsString(String(formData.get(`reps:${exercise.id}`) || ""));
     const evaluation = evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe);
 
     state.exerciseStates[exercise.id] = {
-      ...exerciseState,
       currentLoadKg: evaluation.nextLoadKg,
       topRangeStreak: evaluation.topRangeStreak,
-      sessionsCompleted: (exerciseState.sessionsCompleted || 0) + 1,
+      sessionsCompleted: (getExerciseState(exercise.id).sessionsCompleted || 0) + 1,
       lastOutcome: evaluation.outcome,
       lastCompletedAt: date,
-      draftLoadKg: evaluation.nextLoadKg ?? null,
-      draftRepEntry: "",
-      draftReps: [],
     };
 
     return {
@@ -826,51 +699,7 @@ function saveSession(nextWorkout, formData) {
   showToast(`Saved ${nextWorkout.label} | ${nextWorkout.title}. The app just advanced your cycle.`);
 }
 
-function renderHistory() {
-  const sessions = getRecentSessions(4);
-  if (!sessions.length) {
-    elements.historyList.innerHTML = `
-      <div class="empty-state">
-        No workouts logged yet. Your first completed session will start the progression engine.
-      </div>
-    `;
-    return;
-  }
-
-  elements.historyList.innerHTML = sessions
-    .map((session) => {
-      const wins = session.exerciseLogs.filter((log) => log.outcome === "success").length;
-      const fatigue = session.exerciseLogs.filter((log) => log.outcome === "down").length;
-      return `
-        <article class="history-card">
-          <div class="history-header">
-            <div>
-              <h3>${session.dayKey} | ${PROGRAM[session.dayKey].title}</h3>
-              <p class="history-meta">${formatDate(session.date)} | RPE ${session.overallRpe}</p>
-            </div>
-            <div class="history-tags">
-              <span class="outcome-chip success">${wins} up</span>
-              <span class="outcome-chip ${fatigue ? "down" : "steady"}">${fatigue ? `${fatigue} down` : "steady"}</span>
-            </div>
-          </div>
-          <p class="muted">${session.notes || "No session notes logged."}</p>
-          <div class="history-tags">
-            ${session.exerciseLogs
-              .slice(0, 3)
-              .map(
-                (log) => `
-                  <span class="outcome-chip ${log.outcome === "success" ? "success" : log.outcome === "down" ? "down" : "steady"}">
-                    ${log.exerciseName}: ${log.outcome}
-                  </span>
-                `,
-              )
-              .join("")}
-          </div>
-        </article>
-      `;
-    })
-    .join("");
-}
+function renderHistory() {}
 
 function saveSettings() {
   state.settings.upperIncrementKg = Number(elements.upperIncrement.value || 2.5);
