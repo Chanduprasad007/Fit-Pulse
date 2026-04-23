@@ -65,21 +65,15 @@
         <section class="panel workout-panel" id="log-panel">
           <div class="section-heading compact-heading">
             <p class="eyebrow">Workouts +</p>
-            <h2>Today's Workout + Logs</h2>
+            <h2>Today's Workout</h2>
           </div>
           <div id="workout-summary" class="workout-summary"></div>
           <div id="coach-brief" class="coach-brief"></div>
+          <form id="workout-log-bar" class="workout-logbar"></form>
           <div id="exercise-list" class="exercise-list"></div>
-          <div class="log-shell">
-            <div class="section-heading compact-heading">
-              <p class="eyebrow">Workout Log</p>
-              <h2>Finish the Session</h2>
-            </div>
-            <form id="session-form" class="session-form compact-form"></form>
-          </div>
           <div class="history-inline">
             <div class="section-heading compact-heading">
-              <p class="eyebrow">Logs</p>
+              <p class="eyebrow">Progress</p>
               <h2>Recent Sessions</h2>
             </div>
             <div id="history-list" class="history-list"></div>
@@ -111,29 +105,6 @@
         </section>
       </main>
     </div>
-
-    <template id="exercise-form-row-template">
-      <div class="exercise-form-row">
-        <div class="exercise-form-copy">
-          <div class="exercise-form-title-row">
-            <h3></h3>
-            <span class="mini-tag"></span>
-          </div>
-          <p class="exercise-form-meta"></p>
-          <p class="exercise-form-cue"></p>
-        </div>
-        <div class="exercise-form-inputs">
-          <label>
-            <span>Load (kg)</span>
-            <input class="load-input" type="number" step="0.5" min="0" />
-          </label>
-          <label>
-            <span>Reps per set</span>
-            <input class="reps-input" type="text" placeholder="8,8,7,6" />
-          </label>
-        </div>
-      </div>
-    </template>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="./app.js"></script>
