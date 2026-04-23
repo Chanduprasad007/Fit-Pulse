@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Chandu's 6-day hypertrophy coach with clean workout logging, progression tracking, and a gym-first visual theme."
+      content="Chandu's 6-day gym workout planner with a modern training split, clean progression tracking, and a gym-first visual theme."
     />
     <meta name="theme-color" content="#070a0f" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -44,7 +44,7 @@
             <p id="coach-trigger-message" class="coach-trigger-message muted"></p>
           </div>
           <div class="hero-actions">
-            <button id="jump-to-log" class="primary-button">Open Workouts +</button>
+            <button id="jump-to-workout" class="primary-button">View Today</button>
             <button id="print-workout" class="ghost-button">Print Card</button>
           </div>
         </div>
@@ -54,35 +54,28 @@
       <main class="main-grid">
         <section class="panel dashboard-panel">
           <div class="section-heading compact-heading">
-            <p class="eyebrow">Dashboard</p>
-            <h2>Training Snapshot</h2>
+            <p class="eyebrow">6-Day Split</p>
+            <h2>Weekly Rotation</h2>
           </div>
           <div id="stats-grid" class="stats-grid"></div>
+          <div id="week-split" class="week-split"></div>
           <div id="coach-insights" class="coach-insights"></div>
           <div id="nutrition-strip" class="nutrition-strip"></div>
         </section>
 
-        <section class="panel workout-panel" id="log-panel">
+        <section class="panel workout-panel" id="workout-panel">
           <div class="section-heading compact-heading">
-            <p class="eyebrow">Workouts +</p>
-            <h2>Today's Workout</h2>
+            <p class="eyebrow">Today</p>
+            <h2>Workout Queue</h2>
           </div>
           <div id="workout-summary" class="workout-summary"></div>
           <div id="coach-brief" class="coach-brief"></div>
-          <form id="workout-log-bar" class="workout-logbar"></form>
           <div id="exercise-list" class="exercise-list"></div>
-          <div class="history-inline">
-            <div class="section-heading compact-heading">
-              <p class="eyebrow">Progress</p>
-              <h2>Recent Sessions</h2>
-            </div>
-            <div id="history-list" class="history-list"></div>
-          </div>
         </section>
 
         <section class="panel tools-panel">
           <div class="section-heading compact-heading">
-            <p class="eyebrow">Tools</p>
+            <p class="eyebrow">Tracker</p>
             <h2>Backup & Settings</h2>
           </div>
           <div class="tools-grid">
