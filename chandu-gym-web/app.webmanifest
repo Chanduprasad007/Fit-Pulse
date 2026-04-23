@@ -1,13 +1,13 @@
 {
-  "name": "Fit Pulse - Chandu Gym Coach",
+  "name": "Fit Pulse",
   "short_name": "Fit Pulse",
-  "description": "Progressive gym coaching, workout logging, and Supabase cloud sync for Chandu.",
+  "description": "Six-day hypertrophy coaching, workout logging, and Supabase cloud sync for Chandu.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f141b",
-  "theme_color": "#0f141b",
+  "background_color": "#070a0f",
+  "theme_color": "#070a0f",
   "categories": ["health", "fitness", "sports"],
   "icons": [
     {
