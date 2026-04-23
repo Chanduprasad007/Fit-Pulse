@@ -27,8 +27,8 @@ const elements = {
   coachInsights: document.querySelector("#coach-insights"),
   workoutSummary: document.querySelector("#workout-summary"),
   coachBrief: document.querySelector("#coach-brief"),
+  workoutLogBar: document.querySelector("#workout-log-bar"),
   exerciseList: document.querySelector("#exercise-list"),
-  sessionForm: document.querySelector("#session-form"),
   historyList: document.querySelector("#history-list"),
   nutritionStrip: document.querySelector("#nutrition-strip"),
   upperIncrement: document.querySelector("#upper-increment"),
@@ -56,7 +56,7 @@ syncManager.subscribe((nextSnapshot) => {
 applyTheme(loadTheme());
 
 document.querySelector("#jump-to-log").addEventListener("click", () => {
-  document.querySelector("#session-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  document.querySelector("#log-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.querySelector("#print-workout").addEventListener("click", () => window.print());
@@ -237,6 +237,9 @@ function getExerciseState(exerciseId) {
     sessionsCompleted: 0,
     lastOutcome: "new",
     lastCompletedAt: null,
+    draftLoadKg: null,
+    draftRepEntry: "",
+    draftReps: [],
   };
 }
 
@@ -371,8 +374,8 @@ function render() {
   renderNutritionStrip();
   renderWorkoutSummary(nextWorkout);
   renderCoachBrief(nextWorkout);
+  renderWorkoutLogBar(nextWorkout);
   renderExerciseList(nextWorkout);
-  renderSessionForm(nextWorkout);
   renderHistory();
   renderAuthShell();
 
@@ -552,10 +555,75 @@ function buildExerciseSearchUrl(exerciseName) {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }
 
+function formatDraftReps(reps) {
+  if (!Array.isArray(reps) || !reps.length) {
+    return "Tap + to start logging reps.";
+  }
+
+  return reps.map((rep) => `${rep}`).join(" · ");
+}
+
+function setExerciseDraftState(exerciseId, patch) {
+  const current = getExerciseState(exerciseId);
+  state.exerciseStates[exerciseId] = {
+    ...current,
+    ...patch,
+  };
+  markStateChanged();
+  persistState();
+}
+
+function getLoggedRepsForExercise(exercise, exerciseState) {
+  const draftReps = Array.isArray(exerciseState.draftReps) ? exerciseState.draftReps : [];
+  if (draftReps.length) {
+    return draftReps;
+  }
+
+  const fallback = parseRepsString(String(exerciseState.draftRepEntry || ""));
+  return fallback.length ? fallback : [];
+}
+
+function renderWorkoutLogBar(nextWorkout) {
+  const today = new Date().toISOString().slice(0, 10);
+  const totalDraftSets = nextWorkout.exercises.reduce((count, exercise) => {
+    const exerciseState = getExerciseState(exercise.id);
+    return count + getLoggedRepsForExercise(exercise, exerciseState).length;
+  }, 0);
+
+  elements.workoutLogBar.innerHTML = `
+    <div class="session-meta-grid">
+      <label>
+        <span>Date</span>
+        <input name="date" type="date" value="${today}" required />
+      </label>
+      <label>
+        <span>Overall RPE (1-10)</span>
+        <input name="overallRpe" type="number" min="1" max="10" step="0.5" value="8" required />
+      </label>
+    </div>
+    <label class="session-notes-field">
+      <span>Session Notes</span>
+      <textarea name="notes" placeholder="Energy, sleep, pump, or pain."></textarea>
+    </label>
+    <div class="workout-logbar-actions">
+      <button type="submit" class="primary-button">Save Workout</button>
+      <span class="mini-tag">${totalDraftSets} set${totalDraftSets === 1 ? "" : "s"} logged</span>
+    </div>
+  `;
+
+  elements.workoutLogBar.onsubmit = (event) => {
+    event.preventDefault();
+    saveSession(nextWorkout, new FormData(elements.workoutLogBar));
+  };
+}
+
 function renderExerciseList(nextWorkout) {
   elements.exerciseList.innerHTML = nextWorkout.exercises
     .map((exercise) => {
       const exerciseState = getExerciseState(exercise.id);
+      const loggedReps = getLoggedRepsForExercise(exercise, exerciseState);
+      const draftLoadKg = exerciseState.draftLoadKg ?? exerciseState.currentLoadKg ?? "";
+      const draftRepEntry = exerciseState.draftRepEntry || exercise.repMax;
       const outcomeText =
         exerciseState.lastOutcome === "success"
           ? "up"
@@ -566,13 +634,14 @@ function renderExerciseList(nextWorkout) {
               : "new";
 
       return `
-        <article class="exercise-card">
+        <article class="exercise-card" data-exercise-id="${exercise.id}">
           <div class="exercise-title-row">
             <div>
               <h3>${exercise.name}</h3>
               <p>${exercise.cue}</p>
             </div>
             <div class="exercise-actions">
+              <button type="button" class="exercise-plus-button" data-add-reps="${exercise.id}">+</button>
               <a
                 class="exercise-search-link"
                 href="${buildExerciseSearchUrl(exercise.name)}"
@@ -602,87 +671,97 @@ function renderExerciseList(nextWorkout) {
               <strong>${exerciseState.sessionsCompleted || 0} logged</strong>
             </div>
           </div>
+          <div class="exercise-log-inline">
+            <label class="inline-field">
+              <span>Load (kg)</span>
+              <input
+                class="load-input"
+                type="number"
+                step="0.5"
+                min="0"
+                ${exercise.loadTrack ? "" : "disabled"}
+                value="${draftLoadKg}"
+                placeholder="${exercise.loadTrack ? "Add load" : "Bodyweight"}"
+              />
+            </label>
+            <label class="inline-field">
+              <span>Reps</span>
+              <input class="reps-input" type="number" min="1" step="1" value="${draftRepEntry}" />
+            </label>
+          </div>
+          <div class="rep-chip-row">
+            ${
+              loggedReps.length
+                ? loggedReps.map((rep) => `<span class="rep-chip">${rep}</span>`).join("")
+                : `<span class="muted">Tap + to start logging reps.</span>`
+            }
+          </div>
         </article>
       `;
     })
     .join("");
-}
 
-function renderSessionForm(nextWorkout) {
-  const today = new Date().toISOString().slice(0, 10);
-  const template = document.querySelector("#exercise-form-row-template");
-
-  elements.sessionForm.innerHTML = `
-    <div class="session-meta-grid">
-      <label>
-        <span>Date</span>
-        <input name="date" type="date" value="${today}" required />
-      </label>
-      <label>
-        <span>Overall RPE (1-10)</span>
-        <input name="overallRpe" type="number" min="1" max="10" step="0.5" value="8" required />
-      </label>
-    </div>
-    <label>
-      <span>Session Notes</span>
-      <textarea name="notes" placeholder="Quick note on energy, sleep, pump, or pain."></textarea>
-    </label>
-    <div id="exercise-form-list" class="session-form"></div>
-    <div class="session-actions">
-      <button type="submit" class="primary-button">Save Session</button>
-      <button type="button" id="preview-next" class="ghost-button">Next Day Preview</button>
-    </div>
-  `;
-
-  const exerciseFormList = elements.sessionForm.querySelector("#exercise-form-list");
-
-  nextWorkout.exercises.forEach((exercise) => {
-    const fragment = template.content.cloneNode(true);
-    fragment.querySelector("h3").textContent = exercise.name;
-    fragment.querySelector(".mini-tag").textContent = getRecommendedLoad(exercise);
-    fragment.querySelector(".exercise-form-meta").textContent =
-      `${exercise.sets} sets | ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"} | Rest ${exercise.rest}`;
-    fragment.querySelector(".exercise-form-cue").textContent = exercise.cue;
-    const titleRow = fragment.querySelector(".exercise-form-title-row");
-    const searchLink = document.createElement("a");
-    searchLink.className = "exercise-search-link";
-    searchLink.href = buildExerciseSearchUrl(exercise.name);
-    searchLink.target = "_blank";
-    searchLink.rel = "noopener noreferrer";
-    searchLink.textContent = "Google Form";
-    titleRow.insertBefore(searchLink, titleRow.querySelector(".mini-tag"));
-
-    const loadInput = fragment.querySelector(".load-input");
-    const repsInput = fragment.querySelector(".reps-input");
-
-    if (!exercise.loadTrack) {
-      loadInput.disabled = true;
-      loadInput.placeholder = "Bodyweight";
-    } else {
-      const recommendedLoad = getExerciseState(exercise.id).currentLoadKg;
-      if (recommendedLoad != null) {
-        loadInput.value = recommendedLoad;
+  elements.exerciseList.querySelectorAll(".load-input").forEach((input) => {
+    input.onchange = () => {
+      const card = input.closest(".exercise-card");
+      const exerciseId = card?.dataset.exerciseId;
+      if (!exerciseId) {
+        return;
       }
-    }
 
-    repsInput.placeholder = Array.from({ length: exercise.sets }, () => exercise.repMax).join(",");
-    loadInput.name = `load:${exercise.id}`;
-    repsInput.name = `reps:${exercise.id}`;
-
-    exerciseFormList.appendChild(fragment);
+      setExerciseDraftState(exerciseId, {
+        draftLoadKg: input.disabled || input.value === "" ? null : Number(input.value),
+      });
+    };
   });
 
-  elements.sessionForm.onsubmit = (event) => {
-    event.preventDefault();
-    saveSession(nextWorkout, new FormData(elements.sessionForm));
-  };
+  elements.exerciseList.querySelectorAll(".reps-input").forEach((input) => {
+    input.onchange = () => {
+      const card = input.closest(".exercise-card");
+      const exerciseId = card?.dataset.exerciseId;
+      if (!exerciseId) {
+        return;
+      }
 
-  elements.sessionForm.querySelector("#preview-next").onclick = () => {
-    const currentIndex = DAY_ORDER.indexOf(getNextDayKey());
-    const previewKey = DAY_ORDER[(currentIndex + 1) % DAY_ORDER.length];
-    const previewWorkout = getWorkoutForDay(previewKey);
-    showToast(`After ${nextWorkout.label}, the next day will be ${previewWorkout.label} | ${previewWorkout.title}.`);
-  };
+      setExerciseDraftState(exerciseId, {
+        draftRepEntry: input.value,
+      });
+    };
+  });
+
+  elements.exerciseList.querySelectorAll(".exercise-plus-button").forEach((button) => {
+    button.onclick = () => {
+      const exerciseId = button.dataset.addReps;
+      if (!exerciseId) {
+        return;
+      }
+
+      const card = button.closest(".exercise-card");
+      const repsInput = card?.querySelector(".reps-input");
+      const loadInput = card?.querySelector(".load-input");
+      const repsValue = Number(repsInput?.value || "");
+      if (!Number.isFinite(repsValue) || repsValue <= 0) {
+        showToast("Enter reps first, then tap +.");
+        return;
+      }
+
+      const exerciseState = getExerciseState(exerciseId);
+      const nextDraftReps = [...(Array.isArray(exerciseState.draftReps) ? exerciseState.draftReps : []), repsValue];
+
+      setExerciseDraftState(exerciseId, {
+        draftReps: nextDraftReps,
+        draftRepEntry: String(repsValue),
+        draftLoadKg:
+          loadInput && !loadInput.disabled && loadInput.value !== ""
+            ? Number(loadInput.value)
+            : exerciseState.draftLoadKg ?? exerciseState.currentLoadKg ?? null,
+      });
+
+      renderExerciseList(nextWorkout);
+      renderWorkoutLogBar(nextWorkout);
+      showToast(`Added ${repsValue} reps.`);
+    };
+  });
 }
 
 function saveSession(nextWorkout, formData) {
@@ -694,17 +773,28 @@ function saveSession(nextWorkout, formData) {
     : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   const exerciseLogs = nextWorkout.exercises.map((exercise) => {
-    const loadValue = formData.get(`load:${exercise.id}`);
-    const performedLoadKg = loadValue ? Number(loadValue) : null;
-    const reps = parseRepsString(String(formData.get(`reps:${exercise.id}`) || ""));
+    const exerciseState = getExerciseState(exercise.id);
+    const reps = getLoggedRepsForExercise(exercise, exerciseState);
+    let performedLoadKg = null;
+    if (exercise.loadTrack) {
+      if (exerciseState.draftLoadKg != null && exerciseState.draftLoadKg !== "") {
+        performedLoadKg = Number(exerciseState.draftLoadKg);
+      } else if (exerciseState.currentLoadKg != null) {
+        performedLoadKg = Number(exerciseState.currentLoadKg);
+      }
+    }
     const evaluation = evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe);
 
     state.exerciseStates[exercise.id] = {
+      ...exerciseState,
       currentLoadKg: evaluation.nextLoadKg,
       topRangeStreak: evaluation.topRangeStreak,
-      sessionsCompleted: (getExerciseState(exercise.id).sessionsCompleted || 0) + 1,
+      sessionsCompleted: (exerciseState.sessionsCompleted || 0) + 1,
       lastOutcome: evaluation.outcome,
       lastCompletedAt: date,
+      draftLoadKg: evaluation.nextLoadKg ?? null,
+      draftRepEntry: "",
+      draftReps: [],
     };
 
     return {
