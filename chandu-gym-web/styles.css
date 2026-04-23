@@ -332,9 +332,8 @@ button:hover,
   grid-column: span 8;
 }
 
-.history-panel,
 .tools-panel {
-  grid-column: span 6;
+  grid-column: span 12;
 }
 
 .compact-heading h2 {
@@ -355,6 +354,14 @@ button:hover,
 .nutrition-strip {
   display: grid;
   gap: 12px;
+}
+
+.history-inline {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+  margin-top: 2px;
 }
 
 .stats-grid {
@@ -672,7 +679,6 @@ textarea::placeholder {
 
   .dashboard-panel,
   .workout-panel,
-  .history-panel,
   .tools-panel {
     grid-column: auto;
   }
