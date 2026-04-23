@@ -44,7 +44,7 @@
             <p id="coach-trigger-message" class="coach-trigger-message muted"></p>
           </div>
           <div class="hero-actions">
-            <button id="jump-to-log" class="primary-button">Log Session</button>
+            <button id="jump-to-log" class="primary-button">Open Workouts +</button>
             <button id="print-workout" class="ghost-button">Print Card</button>
           </div>
         </div>
@@ -64,27 +64,26 @@
 
         <section class="panel workout-panel" id="log-panel">
           <div class="section-heading compact-heading">
-            <p class="eyebrow">Next Session</p>
-            <h2>Today's Workout</h2>
+            <p class="eyebrow">Workouts +</p>
+            <h2>Today's Workout + Logs</h2>
           </div>
           <div id="workout-summary" class="workout-summary"></div>
           <div id="coach-brief" class="coach-brief"></div>
           <div id="exercise-list" class="exercise-list"></div>
           <div class="log-shell">
             <div class="section-heading compact-heading">
-              <p class="eyebrow">Log Today</p>
+              <p class="eyebrow">Workout Log</p>
               <h2>Finish the Session</h2>
             </div>
             <form id="session-form" class="session-form compact-form"></form>
           </div>
-        </section>
-
-        <section class="panel history-panel">
-          <div class="section-heading compact-heading">
-            <p class="eyebrow">History</p>
-            <h2>Recent Sessions</h2>
+          <div class="history-inline">
+            <div class="section-heading compact-heading">
+              <p class="eyebrow">Logs</p>
+              <h2>Recent Sessions</h2>
+            </div>
+            <div id="history-list" class="history-list"></div>
           </div>
-          <div id="history-list" class="history-list"></div>
         </section>
 
         <section class="panel tools-panel">
