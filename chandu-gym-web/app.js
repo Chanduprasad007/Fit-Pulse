@@ -66,6 +66,10 @@ document.querySelector("#reset-data").addEventListener("click", resetData);
 elements.importData.addEventListener("change", importData);
 elements.themeToggle.addEventListener("click", toggleTheme);
 elements.installApp.addEventListener("click", installPwa);
+elements.weekSplit.addEventListener("click", handleWeekSplitClick);
+elements.exerciseList.addEventListener("click", handleExerciseListClick);
+elements.exerciseList.addEventListener("input", handleExerciseListInput);
+elements.exerciseList.addEventListener("keydown", handleExerciseListKeydown);
 
 setupPwa();
 
@@ -92,6 +96,7 @@ function sanitizeLoadedState(candidate) {
   return {
     ...base,
     ...(candidate || {}),
+    ui: { ...base.ui, ...((candidate || {}).ui || {}) },
     settings: { ...base.settings, ...((candidate || {}).settings || {}) },
     exerciseStates: (candidate || {}).exerciseStates || {},
     sessions: Array.isArray((candidate || {}).sessions) ? (candidate || {}).sessions : [],
@@ -109,6 +114,24 @@ function replaceWorkingState(nextState) {
 
 function cloneStateSnapshot() {
   return sanitizeLoadedState(JSON.parse(JSON.stringify(state)));
+}
+
+function getSelectedWorkoutDayKey() {
+  const selected = state.ui?.selectedWorkoutDayKey;
+  return selected && PROGRAM[selected] ? selected : getNextDayKey();
+}
+
+function setSelectedWorkoutDayKey(dayKey) {
+  if (!PROGRAM[dayKey]) {
+    return;
+  }
+
+  state.ui = { ...(state.ui || {}), selectedWorkoutDayKey: dayKey };
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("routine_select");
+  showToast(`Viewing ${PROGRAM[dayKey].label} | ${PROGRAM[dayKey].title}.`);
 }
 
 function markStateChanged() {
@@ -240,6 +263,7 @@ function getExerciseState(exerciseId) {
     draftLoadKg: null,
     draftRepEntry: "",
     draftReps: [],
+    repLogs: [],
   };
 }
 
@@ -355,7 +379,7 @@ function buildCoachInsights(nextWorkout) {
     insights.push("Recovery looks good. Push the top range.");
   }
 
-  const unlockedCount = nextWorkout.exercises.length - PROGRAM[getNextDayKey()].exercises.length;
+  const unlockedCount = nextWorkout.exercises.length - (PROGRAM[nextWorkout.dayKey]?.exercises.length || nextWorkout.exercises.length);
   if (unlockedCount > 0) {
     insights.push(`+${unlockedCount} extra accessory ${unlockedCount === 1 ? "move" : "moves"} unlocked.`);
   }
@@ -364,39 +388,42 @@ function buildCoachInsights(nextWorkout) {
 }
 
 function render() {
-  const dayKey = getNextDayKey();
-  const nextWorkout = getWorkoutForDay(dayKey);
+  const suggestedDayKey = getNextDayKey();
+  const selectedDayKey = getSelectedWorkoutDayKey();
+  const suggestedWorkout = getWorkoutForDay(suggestedDayKey);
+  const selectedWorkout = getWorkoutForDay(selectedDayKey);
 
-  renderHero(nextWorkout);
-  renderTriggerChips(nextWorkout);
-  renderStats(nextWorkout);
-  renderWeekSplit(nextWorkout);
-  renderInsights(nextWorkout);
+  renderHero(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey);
+  renderTriggerChips(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey);
+  renderStats(selectedWorkout, selectedDayKey, suggestedDayKey);
+  renderWeekSplit(selectedDayKey, suggestedDayKey);
+  renderInsights(selectedWorkout);
   renderNutritionStrip();
-  renderWorkoutSummary(nextWorkout);
-  renderCoachBrief(nextWorkout);
-  renderExerciseList(nextWorkout);
+  renderWorkoutSummary(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey);
+  renderCoachBrief(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey);
+  renderExerciseList(selectedWorkout);
   renderAuthShell();
 
   elements.upperIncrement.value = state.settings.upperIncrementKg;
   elements.lowerIncrement.value = state.settings.lowerIncrementKg;
 }
 
-function renderHero(nextWorkout) {
+function renderHero(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey) {
   const phase = getTrainingPhase();
   const lastSession = getLastSession();
-  const nextDayExposure = getDayExposureCount(getNextDayKey());
+  const selectedExposure = getDayExposureCount(selectedDayKey);
+  const isSuggestedSelected = selectedDayKey === suggestedDayKey;
   elements.heroPanel.innerHTML = `
     <div class="hero-panel-grid">
       <article class="hero-stat hero-stat-wide">
-        <span class="small-copy">Next Workout</span>
-        <strong>${nextWorkout.label} · ${nextWorkout.title}</strong>
-        <p class="hero-stat-note">${nextWorkout.focus}</p>
+        <span class="small-copy">Selected Routine</span>
+        <strong>${selectedWorkout.label} · ${selectedWorkout.title}</strong>
+        <p class="hero-stat-note">Tap any day card below to switch the workout view.</p>
       </article>
       <article class="hero-stat">
-        <span class="small-copy">Training Phase</span>
-        <strong>${phase.name}</strong>
-        <p class="hero-stat-note">${phase.summary}</p>
+        <span class="small-copy">Workout Focus</span>
+        <strong>${selectedWorkout.type}</strong>
+        <p class="hero-stat-note">${selectedWorkout.focus}</p>
       </article>
       <article class="hero-stat">
         <span class="small-copy">Progress Rule</span>
@@ -404,15 +431,25 @@ function renderHero(nextWorkout) {
         <p class="hero-stat-note">${programNotes.progressiveOverload}</p>
       </article>
       <article class="hero-stat">
+        <span class="small-copy">${isSuggestedSelected ? "Cycle Match" : "Cycle Suggestion"}</span>
+        <strong>${suggestedWorkout.label} · ${suggestedWorkout.title}</strong>
+        <p class="hero-stat-note">${isSuggestedSelected ? "You are on the next programmed day." : "The split suggests this next."}</p>
+      </article>
+      <article class="hero-stat">
+        <span class="small-copy">Training Phase</span>
+        <strong>${phase.name}</strong>
+        <p class="hero-stat-note">${phase.summary}</p>
+      </article>
+      <article class="hero-stat">
         <span class="small-copy">Last Logged Session</span>
         <strong>${lastSession ? `${lastSession.dayKey} on ${formatDate(lastSession.date)}` : "No sessions yet"}</strong>
-        <p class="hero-stat-note">Next run: ${nextWorkout.label} · Exposure ${nextDayExposure + 1}</p>
+        <p class="hero-stat-note">Exposure on this routine: ${selectedExposure}</p>
       </article>
     </div>
   `;
 }
 
-function renderTriggerChips(nextWorkout) {
+function renderTriggerChips(selectedWorkout) {
   elements.triggerChipList.innerHTML = GYM_TRIGGER_CHIPS
     .map(
       (label) => `
@@ -423,13 +460,13 @@ function renderTriggerChips(nextWorkout) {
     )
     .join("");
 
-  const defaultMessage = `Next up: ${nextWorkout.label} | ${nextWorkout.title}. ${nextWorkout.tip}`;
+  const defaultMessage = `Viewing: ${selectedWorkout.label} | ${selectedWorkout.title}. ${selectedWorkout.tip}`;
   elements.coachTriggerMessage.textContent = defaultMessage;
 
   elements.triggerChipList.querySelectorAll(".trigger-chip").forEach((button) => {
     button.onclick = () => {
       const trigger = button.dataset.trigger || "Gym today";
-      elements.coachTriggerMessage.textContent = buildTriggerMessage(trigger, nextWorkout);
+      elements.coachTriggerMessage.textContent = buildTriggerMessage(trigger, selectedWorkout);
       document.querySelector("#workout-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     };
   });
@@ -448,7 +485,7 @@ function buildTriggerMessage(trigger, nextWorkout) {
   return `${opening} ${nextWorkout.label} | ${nextWorkout.title}. ${nextWorkout.tip}`;
 }
 
-function renderStats(nextWorkout) {
+function renderStats(selectedWorkout, selectedDayKey, suggestedDayKey) {
   const currentWeekCount = state.sessions.filter((session) => isWithinCurrentWeek(session.date)).length;
   const recentAverageRpe = getRecentAverageRpe();
   const completionRate = DAY_ORDER.reduce((acc, dayKey) => acc + (getDayExposureCount(dayKey) > 0 ? 1 : 0), 0);
@@ -456,7 +493,9 @@ function renderStats(nextWorkout) {
     { label: "Total Sessions", value: state.sessions.length },
     { label: "Sessions This Week", value: currentWeekCount },
     { label: "Average Recent RPE", value: recentAverageRpe ? recentAverageRpe.toFixed(1) : "N/A" },
+    { label: "Selected Routine", value: `${selectedWorkout.label}` },
     { label: "Split Coverage", value: `${completionRate}/${DAY_ORDER.length} days touched` },
+    { label: "Cycle Next", value: PROGRAM[suggestedDayKey].label },
   ];
 
   elements.statsGrid.innerHTML = stats
@@ -471,22 +510,32 @@ function renderStats(nextWorkout) {
     .join("");
 }
 
-function renderWeekSplit(nextWorkout) {
-  const activeDayKey = getNextDayKey();
+function renderWeekSplit(selectedDayKey, suggestedDayKey) {
   elements.weekSplit.innerHTML = DAY_ORDER.map((dayKey) => {
     const workout = getWorkoutForDay(dayKey);
     const exposureCount = getDayExposureCount(dayKey);
     const previewExercises = workout.exercises.slice(0, 2);
     const remainingCount = Math.max(0, workout.exercises.length - previewExercises.length);
+    const selectedLabel = dayKey === selectedDayKey ? "Selected" : dayKey === suggestedDayKey ? "Suggested" : `${exposureCount}x`;
 
     return `
-      <article class="split-card ${dayKey === activeDayKey ? "is-active" : ""}">
+      <article class="split-card ${dayKey === selectedDayKey ? "is-active" : ""}">
         <div class="split-card-head">
           <div>
             <p class="micro-label">${workout.label}</p>
             <h3>${workout.title}</h3>
           </div>
-          <span class="split-badge">${dayKey === activeDayKey ? "Next" : `${exposureCount}x`}</span>
+          <div class="split-actions">
+            <span class="split-badge">${selectedLabel}</span>
+            <button
+              type="button"
+              class="split-select-button"
+              data-action="select-routine"
+              data-day-key="${dayKey}"
+            >
+              ${dayKey === selectedDayKey ? "Viewing" : "Use this"}
+            </button>
+          </div>
         </div>
         <p class="split-copy">${workout.focus}</p>
         <div class="split-meta">
@@ -502,8 +551,8 @@ function renderWeekSplit(nextWorkout) {
   }).join("");
 }
 
-function renderInsights(nextWorkout) {
-  elements.coachInsights.innerHTML = buildCoachInsights(nextWorkout)
+function renderInsights(selectedWorkout) {
+  elements.coachInsights.innerHTML = buildCoachInsights(selectedWorkout)
     .map(
       (insight) => `
         <article class="coach-card">
@@ -531,31 +580,32 @@ function renderNutritionStrip() {
   `;
 }
 
-function renderWorkoutSummary(nextWorkout) {
+function renderWorkoutSummary(selectedWorkout, suggestedWorkout, selectedDayKey, suggestedDayKey) {
   const phase = getTrainingPhase();
-  const exposureCount = getDayExposureCount(getNextDayKey());
-  const unlockedExercises = nextWorkout.exercises.filter((exercise) =>
-    PROGRAM[getNextDayKey()].evolutions.some((rule) => rule.exercise.id === exercise.id),
+  const exposureCount = getDayExposureCount(selectedDayKey);
+  const unlockedExercises = selectedWorkout.exercises.filter((exercise) =>
+    PROGRAM[selectedDayKey].evolutions.some((rule) => rule.exercise.id === exercise.id),
   );
 
   elements.workoutSummary.innerHTML = `
     <div class="summary-grid">
       <article class="summary-card summary-card-highlight">
         <div class="summary-head">
-          <p class="eyebrow">${nextWorkout.label}</p>
+          <p class="eyebrow">${selectedWorkout.label}</p>
           <span class="status-pill ready">${phase.name}</span>
         </div>
-        <h3>${nextWorkout.title}</h3>
-        <p>${nextWorkout.focus}</p>
+        <h3>${selectedWorkout.title}</h3>
+        <p>${selectedWorkout.focus}</p>
         <div class="pill-row">
-          <span class="pill">${nextWorkout.exercises.length} moves</span>
+          <span class="pill">${selectedWorkout.exercises.length} moves</span>
           <span class="pill">Exposure ${exposureCount + 1}</span>
           <span class="pill">${getRecentSessions(1).length ? "History on file" : "Start fresh"}</span>
+          <span class="pill">${selectedDayKey === suggestedDayKey ? "On cycle" : `Cycle next: ${suggestedWorkout.label}`}</span>
         </div>
       </article>
       <article class="summary-card">
         <p class="micro-label">Session Goal</p>
-        <p>${nextWorkout.goal}</p>
+        <p>${selectedWorkout.goal}</p>
         <p class="muted">
           ${
             unlockedExercises.length
@@ -568,15 +618,15 @@ function renderWorkoutSummary(nextWorkout) {
   `;
 }
 
-function renderCoachBrief(nextWorkout) {
+function renderCoachBrief(selectedWorkout) {
   const phase = getTrainingPhase();
   elements.coachBrief.innerHTML = `
     <div class="coach-brief-grid">
       <article class="brief-card">
         <p class="micro-label">Coach Brief</p>
-        <h3>${nextWorkout.label} | ${nextWorkout.title}</h3>
-        <p>${nextWorkout.motivation}</p>
-        <p class="muted">${nextWorkout.tip}</p>
+        <h3>${selectedWorkout.label} | ${selectedWorkout.title}</h3>
+        <p>${selectedWorkout.motivation}</p>
+        <p class="muted">${selectedWorkout.tip}</p>
       </article>
       <article class="brief-card">
         <p class="micro-label">Execution Focus</p>
@@ -592,10 +642,32 @@ function buildExerciseSearchUrl(exerciseName) {
   return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
 }
 
+function getLoggedRepEntries(exerciseState) {
+  return Array.isArray(exerciseState.repLogs) ? exerciseState.repLogs : [];
+}
+
+function getLoggedRepTotal(exerciseState) {
+  return getLoggedRepEntries(exerciseState).reduce((sum, entry) => sum + Number(entry.reps || 0), 0);
+}
+
+function getExerciseDraftValue(exerciseState) {
+  return exerciseState.draftRepEntry ?? "";
+}
+
+function createRepEntry(reps) {
+  return {
+    id: window.crypto?.randomUUID ? window.crypto.randomUUID() : `rep-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    reps: Number(reps),
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function renderExerciseList(nextWorkout) {
   elements.exerciseList.innerHTML = nextWorkout.exercises
     .map((exercise) => {
       const exerciseState = getExerciseState(exercise.id);
+      const repEntries = getLoggedRepEntries(exerciseState);
+      const totalLoggedReps = getLoggedRepTotal(exerciseState);
       const outcomeText =
         exerciseState.lastOutcome === "success"
           ? "up"
@@ -639,13 +711,159 @@ function renderExerciseList(nextWorkout) {
             </div>
             <div>
               <p class="micro-label">Trend</p>
-              <strong>${exerciseState.sessionsCompleted || 0} logged</strong>
+              <strong>${totalLoggedReps ? `${totalLoggedReps} reps` : "No reps yet"}</strong>
+            </div>
+          </div>
+          <div class="rep-tracker">
+            <div class="rep-tracker-head">
+              <p class="micro-label">Quick Log</p>
+              <span class="rep-tracker-total">${repEntries.length} entries</span>
+            </div>
+            <div class="rep-entry-row">
+              <input
+                class="rep-entry-input"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Reps"
+                value="${getExerciseDraftValue(exerciseState)}"
+                data-role="rep-entry"
+                data-exercise-id="${exercise.id}"
+              />
+              <button type="button" class="rep-add-button" data-action="add-reps" data-exercise-id="${exercise.id}">
+                +
+              </button>
+            </div>
+            <div class="rep-chip-list">
+              ${
+                repEntries.length
+                  ? repEntries
+                      .map(
+                        (entry) => `
+                          <button
+                            type="button"
+                            class="rep-chip"
+                            data-action="remove-reps"
+                            data-exercise-id="${exercise.id}"
+                            data-entry-id="${entry.id}"
+                            title="Remove ${entry.reps} reps"
+                          >
+                            ${entry.reps} reps ×
+                          </button>
+                        `,
+                      )
+                      .join("")
+                  : `<p class="muted rep-empty">Tap + to log reps. Tap a chip to delete it.</p>`
+              }
             </div>
           </div>
         </article>
       `;
     })
     .join("");
+}
+
+function handleWeekSplitClick(event) {
+  const button = event.target.closest("[data-action='select-routine']");
+  if (!button) {
+    return;
+  }
+
+  const dayKey = button.dataset.dayKey;
+  setSelectedWorkoutDayKey(dayKey);
+}
+
+function handleExerciseListInput(event) {
+  const input = event.target.closest("[data-role='rep-entry']");
+  if (!input) {
+    return;
+  }
+
+  const { exerciseId } = input.dataset;
+  if (!exerciseId) {
+    return;
+  }
+
+  const exerciseState = getExerciseState(exerciseId);
+  state.exerciseStates[exerciseId] = {
+    ...exerciseState,
+    draftRepEntry: input.value,
+  };
+  markStateChanged();
+  persistState();
+}
+
+function handleExerciseListKeydown(event) {
+  const input = event.target.closest("[data-role='rep-entry']");
+  if (!input || event.key !== "Enter") {
+    return;
+  }
+
+  event.preventDefault();
+  const { exerciseId } = input.dataset;
+  if (!exerciseId) {
+    return;
+  }
+
+  addRepToExercise(exerciseId, input.value);
+}
+
+function handleExerciseListClick(event) {
+  const addButton = event.target.closest("[data-action='add-reps']");
+  if (addButton) {
+    const { exerciseId } = addButton.dataset;
+    const input = elements.exerciseList.querySelector(`[data-role='rep-entry'][data-exercise-id="${exerciseId}"]`);
+    addRepToExercise(exerciseId, input?.value || "");
+    return;
+  }
+
+  const removeButton = event.target.closest("[data-action='remove-reps']");
+  if (removeButton) {
+    const { exerciseId, entryId } = removeButton.dataset;
+    removeRepFromExercise(exerciseId, entryId);
+  }
+}
+
+function addRepToExercise(exerciseId, value) {
+  const reps = Number(String(value).trim());
+  if (!exerciseId || !Number.isFinite(reps) || reps <= 0) {
+    showToast("Enter a valid rep count before tapping +.");
+    return;
+  }
+
+  const exerciseState = getExerciseState(exerciseId);
+  const repLogs = getLoggedRepEntries(exerciseState);
+  state.exerciseStates[exerciseId] = {
+    ...exerciseState,
+    draftRepEntry: "",
+    repLogs: [...repLogs, createRepEntry(reps)],
+  };
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("rep_log_add");
+}
+
+function removeRepFromExercise(exerciseId, entryId) {
+  if (!exerciseId || !entryId) {
+    return;
+  }
+
+  const exerciseState = getExerciseState(exerciseId);
+  const repLogs = getLoggedRepEntries(exerciseState);
+  const nextLogs = repLogs.filter((entry) => entry.id !== entryId);
+  if (nextLogs.length === repLogs.length) {
+    return;
+  }
+
+  state.exerciseStates[exerciseId] = {
+    ...exerciseState,
+    repLogs: nextLogs,
+  };
+  markStateChanged();
+  persistState();
+  render();
+  requestCloudSync("rep_log_remove");
 }
 
 function saveSession(nextWorkout, formData) {
@@ -661,11 +879,13 @@ function saveSession(nextWorkout, formData) {
     const performedLoadKg = loadValue ? Number(loadValue) : null;
     const reps = parseRepsString(String(formData.get(`reps:${exercise.id}`) || ""));
     const evaluation = evaluateExerciseOutcome(exercise, performedLoadKg, reps, overallRpe);
+    const exerciseState = getExerciseState(exercise.id);
 
     state.exerciseStates[exercise.id] = {
+      ...exerciseState,
       currentLoadKg: evaluation.nextLoadKg,
       topRangeStreak: evaluation.topRangeStreak,
-      sessionsCompleted: (getExerciseState(exercise.id).sessionsCompleted || 0) + 1,
+      sessionsCompleted: (exerciseState.sessionsCompleted || 0) + 1,
       lastOutcome: evaluation.outcome,
       lastCompletedAt: date,
     };
@@ -685,7 +905,7 @@ function saveSession(nextWorkout, formData) {
   state.sessions.push({
     id: sessionId,
     date,
-    dayKey: getNextDayKey(),
+    dayKey: nextWorkout.dayKey,
     overallRpe,
     notes,
     exerciseLogs,
@@ -733,6 +953,7 @@ async function importData(event) {
     const nextState = {
       ...createInitialState(),
       ...imported,
+      ui: { ...createInitialState().ui, ...(imported.ui || {}) },
       settings: { ...createInitialState().settings, ...(imported.settings || {}) },
       exerciseStates: imported.exerciseStates || {},
       sessions: Array.isArray(imported.sessions) ? imported.sessions : [],
