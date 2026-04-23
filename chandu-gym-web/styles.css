@@ -525,6 +525,12 @@ button:hover,
   gap: 10px;
 }
 
+.split-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
 .split-badge {
   display: inline-flex;
   align-items: center;
@@ -538,6 +544,24 @@ button:hover,
   font-size: 0.72rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.split-select-button {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.split-select-button:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
 }
 
 .split-copy {
@@ -567,6 +591,77 @@ button:hover,
   max-width: 100%;
   justify-content: center;
   text-align: center;
+}
+
+.rep-tracker {
+  display: grid;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.rep-tracker-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.rep-tracker-total {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rep-entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.rep-entry-input {
+  min-width: 0;
+}
+
+.rep-add-button {
+  min-width: 44px;
+  border: 1px solid var(--line);
+  color: #fffaf5;
+  background: linear-gradient(135deg, var(--accent), #ff9b53);
+  box-shadow: 0 10px 18px rgba(249, 115, 22, 0.18);
+}
+
+.rep-add-button:hover {
+  background: linear-gradient(135deg, #ff8d33, #ffb173);
+}
+
+.rep-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rep-chip {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(249, 115, 22, 0.24);
+  background: rgba(249, 115, 22, 0.1);
+  color: var(--ink);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
+.rep-chip:hover {
+  background: rgba(249, 115, 22, 0.18);
+  border-color: rgba(249, 115, 22, 0.42);
+}
+
+.rep-empty {
+  margin-bottom: 0;
 }
 
 .exercise-title-row,
@@ -758,6 +853,20 @@ textarea::placeholder {
   .exercise-title-row,
   .auth-status-line {
     flex-direction: column;
+  }
+
+  .split-card-head,
+  .rep-tracker-head {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .split-actions {
+    justify-items: start;
+  }
+
+  .rep-entry-row {
+    grid-template-columns: 1fr;
   }
 
   .exercise-actions {
