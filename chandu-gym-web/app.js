@@ -388,7 +388,7 @@ function renderHero(nextWorkout) {
     <div class="hero-panel-grid">
       <div class="hero-stat">
         <span class="small-copy">Next Workout</span>
-        <strong>${nextWorkout.label} · ${nextWorkout.title}</strong>
+        <strong>${nextWorkout.label} | ${nextWorkout.title}</strong>
       </div>
       <div class="hero-stat">
         <span class="small-copy">Training Phase</span>
@@ -417,7 +417,7 @@ function renderTriggerChips(nextWorkout) {
     )
     .join("");
 
-  const defaultMessage = `Bro, ${nextWorkout.label} · ${nextWorkout.title} is up. ${nextWorkout.tip}`;
+  const defaultMessage = `Next up: ${nextWorkout.label} | ${nextWorkout.title}. ${nextWorkout.tip}`;
   elements.coachTriggerMessage.textContent = defaultMessage;
 
   elements.triggerChipList.querySelectorAll(".trigger-chip").forEach((button) => {
@@ -436,10 +436,10 @@ function buildTriggerMessage(trigger, nextWorkout) {
       : trigger === "Going to Cult"
         ? "Cult session locked in."
         : trigger === "What's my workout?"
-          ? "Here’s the move for today."
+          ? "Here's the move for today."
           : "Gym time.";
 
-  return `${opening} ${nextWorkout.label} · ${nextWorkout.title}. ${nextWorkout.tip}`;
+  return `${opening} ${nextWorkout.label} | ${nextWorkout.title}. ${nextWorkout.tip}`;
 }
 
 function renderStats(nextWorkout) {
@@ -483,7 +483,7 @@ function renderNutritionStrip() {
       <p class="micro-label">Chandu Context</p>
       <p>${TRAINER_PROFILE.athlete}</p>
       <p class="muted">${TRAINER_PROFILE.goal}</p>
-      <p class="muted">${TRAINER_PROFILE.gym} · ${TRAINER_PROFILE.schedule}</p>
+      <p class="muted">${TRAINER_PROFILE.gym} | ${TRAINER_PROFILE.schedule}</p>
     </article>
     <article class="nutrition-card">
       <p class="micro-label">Nutrition Snapshot</p>
@@ -509,7 +509,7 @@ function renderWorkoutSummary(nextWorkout) {
         <p>${nextWorkout.focus}</p>
         <div class="pill-row">
           <span class="pill">${phase.name}</span>
-          <span class="pill">${nextWorkout.exercises.length} exercises</span>
+          <span class="pill">${nextWorkout.exercises.length} moves</span>
           <span class="pill">Exposure ${exposureCount + 1}</span>
         </div>
       </article>
@@ -534,14 +534,14 @@ function renderCoachBrief(nextWorkout) {
     <div class="coach-brief-grid">
       <article class="brief-card">
         <p class="micro-label">Coach Brief</p>
-        <h3>${nextWorkout.label} · ${nextWorkout.title}</h3>
+        <h3>${nextWorkout.label} | ${nextWorkout.title}</h3>
         <p>${nextWorkout.motivation}</p>
         <p class="muted">${nextWorkout.tip}</p>
       </article>
       <article class="brief-card">
         <p class="micro-label">Execution Focus</p>
-        <p>Stay in the ${phase.name.toLowerCase()} phase mindset: own clean reps first, then earn progression.</p>
-        <p class="muted">Progressive overload reminder: add a little weight or a rep every 1-2 weeks when form stays sharp.</p>
+        <p>Stay in the ${phase.name.toLowerCase()} mindset: clean reps first, progression second.</p>
+        <p class="muted">Add a little load or a rep every 1-2 weeks when form stays sharp.</p>
       </article>
     </div>
   `;
@@ -558,11 +558,11 @@ function renderExerciseList(nextWorkout) {
       const exerciseState = getExerciseState(exercise.id);
       const outcomeText =
         exerciseState.lastOutcome === "success"
-          ? "progressing"
+          ? "up"
           : exerciseState.lastOutcome === "down"
-            ? "recovering"
+            ? "down"
             : exerciseState.lastOutcome === "steady"
-              ? "holding"
+              ? "hold"
               : "new";
 
       return `
@@ -579,7 +579,7 @@ function renderExerciseList(nextWorkout) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Google Form
+                Form
               </a>
               <span class="mini-tag">${outcomeText}</span>
             </div>
@@ -641,7 +641,7 @@ function renderSessionForm(nextWorkout) {
     fragment.querySelector("h3").textContent = exercise.name;
     fragment.querySelector(".mini-tag").textContent = getRecommendedLoad(exercise);
     fragment.querySelector(".exercise-form-meta").textContent =
-      `${exercise.sets} sets · ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"} · Rest ${exercise.rest}`;
+      `${exercise.sets} sets | ${exercise.repMin}${exercise.repMax !== exercise.repMin ? `-${exercise.repMax}` : ""}${exercise.metric === "seconds" ? " sec" : " reps"} | Rest ${exercise.rest}`;
     fragment.querySelector(".exercise-form-cue").textContent = exercise.cue;
     const titleRow = fragment.querySelector(".exercise-form-title-row");
     const searchLink = document.createElement("a");
@@ -681,7 +681,7 @@ function renderSessionForm(nextWorkout) {
     const currentIndex = DAY_ORDER.indexOf(getNextDayKey());
     const previewKey = DAY_ORDER[(currentIndex + 1) % DAY_ORDER.length];
     const previewWorkout = getWorkoutForDay(previewKey);
-    showToast(`After ${nextWorkout.label}, the next day will be ${previewWorkout.label} · ${previewWorkout.title}.`);
+    showToast(`After ${nextWorkout.label}, the next day will be ${previewWorkout.label} | ${previewWorkout.title}.`);
   };
 }
 
@@ -733,7 +733,7 @@ function saveSession(nextWorkout, formData) {
   persistState();
   render();
   requestCloudSync("session_save");
-  showToast(`Saved ${nextWorkout.label} · ${nextWorkout.title}. The app just advanced your cycle.`);
+  showToast(`Saved ${nextWorkout.label} | ${nextWorkout.title}. The app just advanced your cycle.`);
 }
 
 function renderHistory() {
@@ -755,12 +755,12 @@ function renderHistory() {
         <article class="history-card">
           <div class="history-header">
             <div>
-              <h3>${session.dayKey} · ${PROGRAM[session.dayKey].title}</h3>
-              <p class="history-meta">${formatDate(session.date)} · RPE ${session.overallRpe}</p>
+              <h3>${session.dayKey} | ${PROGRAM[session.dayKey].title}</h3>
+              <p class="history-meta">${formatDate(session.date)} | RPE ${session.overallRpe}</p>
             </div>
             <div class="history-tags">
-              <span class="outcome-chip success">${wins} wins</span>
-              <span class="outcome-chip ${fatigue ? "down" : "steady"}">${fatigue ? `${fatigue} pullbacks` : "stable"}</span>
+              <span class="outcome-chip success">${wins} up</span>
+              <span class="outcome-chip ${fatigue ? "down" : "steady"}">${fatigue ? `${fatigue} down` : "steady"}</span>
             </div>
           </div>
           <p class="muted">${session.notes || "No session notes logged."}</p>
