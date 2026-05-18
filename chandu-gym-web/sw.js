@@ -1,12 +1,10 @@
-const CACHE_NAME = "fit-pulse-v1";
+const CACHE_NAME = "fit-pulse-program-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
   "./workout-data.js",
-  "./supabase-config.js",
-  "./supabase-sync.js",
   "./app.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
