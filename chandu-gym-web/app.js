@@ -1,6 +1,7 @@
 import { coachingRules, focusTags, program } from "./workout-data.js";
 
 const elements = {
+  pageShell: document.querySelector(".page-shell"),
   focusTags: document.querySelector("#focus-tags"),
   programGrid: document.querySelector("#program-grid"),
   dayTabs: document.querySelector("#day-tabs"),
@@ -12,8 +13,13 @@ const elements = {
 };
 
 let activeDay = program[0].letter;
-let expandedAlternatives = new Set();
-let allExpanded = false;
+let expandedAlternatives = new Set(program.flatMap((day) => day.exercises.map((exercise) => exerciseKey(day, exercise))));
+let allExpanded = true;
+let exerciseMedia = new Map();
+
+const mediaSeed = new Map([
+  ["barbell bench press", { name: "barbell bench press", gifUrl: "https://static.exercisedb.dev/media/EIeI8Vf.gif" }],
+]);
 
 elements.themeButton.addEventListener("click", toggleTheme);
 elements.printButton.addEventListener("click", () => window.print());
@@ -26,7 +32,10 @@ elements.expandButton.addEventListener("click", () => {
 });
 
 render();
-setTheme("dark");
+setTheme("light");
+loadExerciseAnimations();
+window.addEventListener("scroll", updateScrollScene, { passive: true });
+updateScrollScene();
 
 function render() {
   renderFocusTags();
@@ -93,6 +102,7 @@ function renderProgram() {
       renderProgram();
     });
   });
+  hydrateAnimationPanels();
 }
 
 function renderDayCard(day) {
@@ -159,6 +169,9 @@ function renderExerciseRow(day, exercise, index) {
           <span><b>${exercise.reps}</b> reps/time</span>
           <span><b>${exercise.rest}</b> rest</span>
         </div>
+        <div class="movement-preview" data-animation-key="${key}" data-animation-query="${exercise.animationQuery || exercise.name}">
+          ${renderAnimationPanel(exercise)}
+        </div>
         <div class="exercise-actions">
           <a class="form-button" href="${googleFormUrl(exercise.name)}" target="_blank" rel="noopener noreferrer">
             How To Do It
@@ -197,6 +210,112 @@ function setTheme(theme) {
   elements.themeButton.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
   elements.themeButton.setAttribute("aria-pressed", String(theme === "light"));
   document.querySelector("meta[name='theme-color']")?.setAttribute("content", theme === "dark" ? "#050505" : "#f4f1e8");
+}
+
+function renderAnimationPanel(exercise) {
+  const media = findMedia(exercise.animationQuery || exercise.name);
+  if (media?.gifUrl) {
+    return `
+      <figure class="movement-figure has-media">
+        <img src="${media.gifUrl}" alt="${exercise.name} exercise demonstration" loading="lazy" />
+        <figcaption>${media.name}</figcaption>
+      </figure>
+    `;
+  }
+
+  return `
+    <figure class="movement-figure">
+      <div class="motion-avatar" aria-hidden="true">
+        <span class="motion-head"></span>
+        <span class="motion-torso"></span>
+        <span class="motion-arm arm-left"></span>
+        <span class="motion-arm arm-right"></span>
+        <span class="motion-leg leg-left"></span>
+        <span class="motion-leg leg-right"></span>
+      </div>
+      <figcaption>3D form cue while online demo loads</figcaption>
+    </figure>
+  `;
+}
+
+function hydrateAnimationPanels() {
+  document.querySelectorAll(".movement-preview").forEach((panel) => {
+    const query = panel.dataset.animationQuery;
+    const day = program.find((candidate) =>
+      candidate.exercises.some((exercise) => exerciseKey(candidate, exercise) === panel.dataset.animationKey),
+    );
+    const exercise = day?.exercises.find((candidate) => exerciseKey(day, candidate) === panel.dataset.animationKey);
+    const media = findMedia(query);
+    if (!exercise || !media?.gifUrl) {
+      return;
+    }
+    panel.innerHTML = renderAnimationPanel(exercise);
+  });
+}
+
+async function loadExerciseAnimations() {
+  exerciseMedia = new Map(mediaSeed);
+  hydrateAnimationPanels();
+
+  try {
+    let cursor = "";
+    const wanted = new Set(program.flatMap((day) => day.exercises.map((exercise) => normalizeName(exercise.animationQuery || exercise.name))));
+
+    for (let page = 0; page < 8 && wanted.size; page += 1) {
+      const url = new URL("https://oss.exercisedb.dev/api/v1/exercises");
+      if (cursor) {
+        url.searchParams.set("after", cursor);
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        break;
+      }
+
+      const payload = await response.json();
+      const exercises = Array.isArray(payload?.data) ? payload.data : [];
+      exercises.forEach((item) => {
+        const key = normalizeName(item.name);
+        exerciseMedia.set(key, item);
+        wanted.forEach((wantedKey) => {
+          if (key === wantedKey || key.includes(wantedKey) || wantedKey.includes(key)) {
+            wanted.delete(wantedKey);
+          }
+        });
+      });
+
+      hydrateAnimationPanels();
+      cursor = payload?.meta?.nextCursor;
+      if (!payload?.meta?.hasNextPage || !cursor) {
+        break;
+      }
+    }
+  } catch {
+    hydrateAnimationPanels();
+  }
+}
+
+function findMedia(name) {
+  const key = normalizeName(name);
+  if (exerciseMedia.has(key)) {
+    return exerciseMedia.get(key);
+  }
+
+  return [...exerciseMedia.entries()].find(([candidate]) => candidate.includes(key) || key.includes(candidate))?.[1] || null;
+}
+
+function normalizeName(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/\b(bb|db)\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function updateScrollScene() {
+  const scrollRatio = Math.min(1, window.scrollY / Math.max(1, window.innerHeight));
+  elements.pageShell?.style.setProperty("--scroll-progress", scrollRatio.toFixed(3));
 }
 
 document.addEventListener("click", (event) => {
