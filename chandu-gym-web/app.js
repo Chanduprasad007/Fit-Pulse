@@ -1,6 +1,5 @@
 import { coachingRules, focusTags, program } from "./workout-data.js";
 
-const selectedDayKey = "fit-pulse-selected-day";
 const elements = {
   focusTags: document.querySelector("#focus-tags"),
   programGrid: document.querySelector("#program-grid"),
@@ -9,12 +8,14 @@ const elements = {
   coachingGrid: document.querySelector("#coaching-grid"),
   printButton: document.querySelector("#print-plan"),
   expandButton: document.querySelector("#expand-all"),
+  themeButton: document.querySelector("#theme-toggle"),
 };
 
-let activeDay = window.localStorage.getItem(selectedDayKey) || program[0].letter;
+let activeDay = program[0].letter;
 let expandedAlternatives = new Set();
 let allExpanded = false;
 
+elements.themeButton.addEventListener("click", toggleTheme);
 elements.printButton.addEventListener("click", () => window.print());
 elements.expandButton.addEventListener("click", () => {
   allExpanded = !allExpanded;
@@ -25,6 +26,7 @@ elements.expandButton.addEventListener("click", () => {
 });
 
 render();
+setTheme("dark");
 
 function render() {
   renderFocusTags();
@@ -54,7 +56,6 @@ function renderDayTabs() {
   elements.dayTabs.querySelectorAll(".day-tab").forEach((button) => {
     button.addEventListener("click", () => {
       activeDay = button.dataset.day;
-      window.localStorage.setItem(selectedDayKey, activeDay);
       renderDayTabs();
       renderProgram();
       document.querySelector("#detail-panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -187,6 +188,17 @@ function googleFormUrl(exerciseName) {
   return `https://www.google.com/search?q=${encodeURIComponent(`${exerciseName} proper form gym exercise video`)}`;
 }
 
+function toggleTheme() {
+  setTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+}
+
+function setTheme(theme) {
+  document.body.dataset.theme = theme;
+  elements.themeButton.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+  elements.themeButton.setAttribute("aria-pressed", String(theme === "light"));
+  document.querySelector("meta[name='theme-color']")?.setAttribute("content", theme === "dark" ? "#050505" : "#f4f1e8");
+}
+
 document.addEventListener("click", (event) => {
   const cardButton = event.target.closest(".day-card-hit");
   if (!cardButton) {
@@ -194,7 +206,6 @@ document.addEventListener("click", (event) => {
   }
 
   activeDay = cardButton.dataset.day;
-  window.localStorage.setItem(selectedDayKey, activeDay);
   renderDayTabs();
   renderProgram();
   document.querySelector("#detail-panel").scrollIntoView({ behavior: "smooth", block: "start" });
