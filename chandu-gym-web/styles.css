@@ -2,6 +2,7 @@
 
 :root {
   --bg: #050505;
+  --bg-glow: rgba(217, 255, 0, 0.1);
   --panel: #101010;
   --panel-2: #151515;
   --button-bg: #0c0c0c;
@@ -19,11 +20,13 @@
   --number: #68717a;
   --legend-ink: #5d646b;
   --low-ink: #f3f3f3;
+  --shadow: 0 26px 70px rgba(0, 0, 0, 0.34);
   --radius: 8px;
 }
 
 body[data-theme="light"] {
   --bg: #f4f1e8;
+  --bg-glow: rgba(255, 90, 25, 0.12);
   --panel: #fffdf7;
   --panel-2: #f8f1e4;
   --button-bg: #fffaf0;
@@ -41,6 +44,7 @@ body[data-theme="light"] {
   --number: #74808b;
   --legend-ink: #6a737c;
   --low-ink: #171717;
+  --shadow: 0 24px 58px rgba(84, 65, 35, 0.12);
 }
 
 * {
@@ -56,6 +60,8 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
+    radial-gradient(circle at 18% 8%, var(--bg-glow), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(0, 217, 255, 0.12), transparent 26%),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     var(--bg);
@@ -75,6 +81,100 @@ button {
 .page-shell {
   width: min(calc(100% - 44px), 1180px);
   margin: 42px auto 84px;
+  perspective: 1400px;
+  --scroll-progress: 0;
+}
+
+.scroll-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: 30px;
+  align-items: center;
+  min-height: min(76vh, 720px);
+  padding: 18px 0 34px;
+  transform-style: preserve-3d;
+}
+
+.hero-copy {
+  transform: translateZ(80px) translateY(calc(var(--scroll-progress) * -22px));
+}
+
+.hero-copy p:last-child {
+  max-width: 52ch;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.hero-stage {
+  position: relative;
+  min-height: 480px;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(9deg - var(--scroll-progress) * 7deg)) rotateY(calc(-18deg + var(--scroll-progress) * 16deg));
+  transition: transform 120ms linear;
+}
+
+.orbit,
+.floating-card {
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.orbit {
+  inset: 54px 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  box-shadow: inset 0 0 40px var(--soft-fill), var(--shadow);
+}
+
+.orbit-one {
+  transform: rotateX(68deg) rotateZ(18deg);
+  border-color: var(--orange);
+}
+
+.orbit-two {
+  transform: rotateX(70deg) rotateY(28deg) rotateZ(-22deg);
+  border-color: var(--cyan);
+}
+
+.floating-card {
+  display: grid;
+  place-items: center;
+  width: 210px;
+  min-height: 124px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  box-shadow: var(--shadow);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card-back {
+  top: 70px;
+  left: 36px;
+  transform: translateZ(90px) rotateY(-18deg);
+  color: var(--cyan);
+}
+
+.card-shoulders {
+  top: 160px;
+  right: 20px;
+  transform: translateZ(150px) rotateY(16deg);
+  color: var(--orange);
+}
+
+.card-core {
+  bottom: 64px;
+  left: 126px;
+  transform: translateZ(60px) rotateX(10deg);
+  color: var(--lime);
 }
 
 .masthead {
@@ -84,6 +184,7 @@ button {
   align-items: end;
   padding-bottom: 30px;
   border-bottom: 1px solid var(--line);
+  transform: translateZ(30px);
 }
 
 .eyebrow,
@@ -120,6 +221,14 @@ h1 {
   font-size: 7.8rem;
   font-weight: 900;
   line-height: 0.76;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.masthead h2 {
+  margin: 0;
+  font-size: 3.6rem;
+  line-height: 0.9;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -276,6 +385,7 @@ h1:not(span) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  transform-style: preserve-3d;
 }
 
 .day-card,
@@ -284,6 +394,7 @@ h1:not(span) {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  box-shadow: var(--shadow);
 }
 
 .day-card {
@@ -291,6 +402,13 @@ h1:not(span) {
   overflow: hidden;
   min-height: 408px;
   border-top-width: 4px;
+  transform: rotateX(0deg) translateZ(0);
+  transition: transform 220ms ease, box-shadow 220ms ease, outline-color 220ms ease;
+}
+
+.day-card:hover,
+.day-card.selected {
+  transform: translateY(-4px) rotateX(2deg) translateZ(30px);
 }
 
 .day-card.orange {
@@ -459,6 +577,7 @@ h1:not(span) {
 
 .exercise-main {
   padding: 18px 20px;
+  transform-style: preserve-3d;
 }
 
 .exercise-title-line {
@@ -507,6 +626,123 @@ h1:not(span) {
 
 .prescription b {
   color: var(--ink);
+}
+
+.movement-preview {
+  margin: 16px 0;
+}
+
+.movement-figure {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-height: 156px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--soft-line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, var(--soft-fill), transparent),
+    var(--panel-2);
+}
+
+.movement-figure img {
+  width: 170px;
+  height: 132px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.movement-figure figcaption {
+  color: var(--muted);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.motion-avatar {
+  position: relative;
+  width: 170px;
+  height: 132px;
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(255, 90, 25, 0.16), transparent 22%),
+    linear-gradient(180deg, var(--panel), var(--button-bg));
+  transform: translateZ(30px);
+}
+
+.motion-avatar span {
+  position: absolute;
+  display: block;
+  background: var(--orange);
+  box-shadow: 0 0 18px rgba(255, 90, 25, 0.28);
+  animation: lift-pulse 1.35s ease-in-out infinite alternate;
+}
+
+.motion-head {
+  width: 20px;
+  height: 20px;
+  left: 75px;
+  top: 18px;
+  border-radius: 50%;
+}
+
+.motion-torso {
+  width: 18px;
+  height: 44px;
+  left: 76px;
+  top: 42px;
+  border-radius: 999px;
+}
+
+.motion-arm,
+.motion-leg {
+  width: 12px;
+  height: 46px;
+  border-radius: 999px;
+  transform-origin: top center;
+}
+
+.arm-left {
+  left: 58px;
+  top: 45px;
+  transform: rotate(42deg);
+}
+
+.arm-right {
+  left: 100px;
+  top: 45px;
+  transform: rotate(-42deg);
+  animation-delay: 160ms;
+}
+
+.leg-left {
+  left: 66px;
+  top: 82px;
+  transform: rotate(22deg);
+  background: var(--cyan) !important;
+}
+
+.leg-right {
+  left: 92px;
+  top: 82px;
+  transform: rotate(-22deg);
+  background: var(--cyan) !important;
+  animation-delay: 160ms;
+}
+
+@keyframes lift-pulse {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 -8px;
+  }
 }
 
 .exercise-actions {
@@ -607,6 +843,10 @@ h1:not(span) {
   color: var(--legend-ink);
 }
 
+.legend a {
+  color: var(--cyan);
+}
+
 .legend b {
   display: inline-flex;
   margin-right: 5px;
@@ -647,6 +887,15 @@ h1:not(span) {
   .mission-band {
     grid-template-columns: 1fr;
   }
+
+  .scroll-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .hero-stage {
+    min-height: 360px;
+  }
 }
 
 @media (max-width: 720px) {
@@ -660,6 +909,10 @@ h1:not(span) {
     display: grid;
   }
 
+  .scroll-hero {
+    padding-top: 0;
+  }
+
   .masthead > * {
     min-width: 0;
   }
@@ -671,6 +924,33 @@ h1:not(span) {
 
   h1 {
     font-size: 3.65rem;
+  }
+
+  .masthead h2 {
+    font-size: 2.35rem;
+  }
+
+  .hero-stage {
+    min-height: 320px;
+    transform: rotateX(6deg) rotateY(-8deg);
+  }
+
+  .floating-card {
+    width: 160px;
+    min-height: 96px;
+    font-size: 0.72rem;
+  }
+
+  .card-back {
+    left: 0;
+  }
+
+  .card-shoulders {
+    right: 0;
+  }
+
+  .card-core {
+    left: 72px;
   }
 
   .detail-header h2 {
@@ -704,6 +984,15 @@ h1:not(span) {
   .alt-button {
     width: 100%;
   }
+
+  .movement-figure {
+    grid-template-columns: 1fr;
+  }
+
+  .movement-figure img,
+  .motion-avatar {
+    width: 100%;
+  }
 }
 
 @media print {
@@ -713,6 +1002,7 @@ h1:not(span) {
   }
 
   .mission-actions,
+  .scroll-hero,
   .day-tabs,
   .day-card-hit,
   .exercise-actions,
