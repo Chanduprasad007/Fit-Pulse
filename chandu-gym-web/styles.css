@@ -88,16 +88,16 @@ button {
 .scroll-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
-  gap: 30px;
+  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.82fr);
+  gap: 42px;
   align-items: center;
-  min-height: min(76vh, 720px);
-  padding: 18px 0 34px;
+  min-height: min(72vh, 680px);
+  padding: 24px 0 46px;
   transform-style: preserve-3d;
 }
 
 .hero-copy {
-  transform: translateZ(80px) translateY(calc(var(--scroll-progress) * -22px));
+  transform: translateZ(60px) translateY(calc(var(--scroll-progress) * -14px));
 }
 
 .hero-copy p:last-child {
@@ -109,72 +109,58 @@ button {
 }
 
 .hero-stage {
-  position: relative;
-  min-height: 480px;
-  transform-style: preserve-3d;
-  transform: rotateX(calc(9deg - var(--scroll-progress) * 7deg)) rotateY(calc(-18deg + var(--scroll-progress) * 16deg));
-  transition: transform 120ms linear;
-}
-
-.orbit,
-.floating-card {
-  position: absolute;
-  transform-style: preserve-3d;
-}
-
-.orbit {
-  inset: 54px 34px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  box-shadow: inset 0 0 40px var(--soft-fill), var(--shadow);
-}
-
-.orbit-one {
-  transform: rotateX(68deg) rotateZ(18deg);
-  border-color: var(--orange);
-}
-
-.orbit-two {
-  transform: rotateX(70deg) rotateY(28deg) rotateZ(-22deg);
-  border-color: var(--cyan);
-}
-
-.floating-card {
   display: grid;
-  place-items: center;
-  width: 210px;
-  min-height: 124px;
+  gap: 14px;
+  padding: 18px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  color: var(--ink);
-  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  background:
+    linear-gradient(140deg, var(--soft-fill), transparent),
+    linear-gradient(180deg, var(--panel-2), var(--panel));
   box-shadow: var(--shadow);
+  transform: translateZ(36px);
+}
+
+.hero-metric {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.hero-metric span {
   font-family: "IBM Plex Mono", monospace;
-  font-size: 0.88rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  color: var(--muted);
 }
 
-.card-back {
-  top: 70px;
-  left: 36px;
-  transform: translateZ(90px) rotateY(-18deg);
-  color: var(--cyan);
+.hero-metric strong {
+  font-size: 1.55rem;
+  line-height: 1;
 }
 
-.card-shoulders {
-  top: 160px;
-  right: 20px;
-  transform: translateZ(150px) rotateY(16deg);
+.hero-metric p {
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.metric-primary {
+  min-height: 172px;
+  background:
+    linear-gradient(135deg, rgba(255, 90, 25, 0.12), transparent 62%),
+    var(--panel);
+}
+
+.metric-primary strong {
   color: var(--orange);
-}
-
-.card-core {
-  bottom: 64px;
-  left: 126px;
-  transform: translateZ(60px) rotateX(10deg);
-  color: var(--lime);
+  font-size: 2.25rem;
 }
 
 .masthead {
@@ -813,24 +799,44 @@ h1:not(span) {
   line-height: 1.45;
 }
 
-.alternative-box div {
+.alternative-options {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.alternative-box a {
+.alternative-choice,
+.alternative-box a,
+.external-demo-link {
   padding: 7px 10px;
   border: 1px solid var(--soft-line);
   border-radius: 4px;
   color: var(--ink);
   text-decoration: none;
   background: var(--soft-fill);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.alternative-box a:hover {
+.alternative-choice:hover,
+.alternative-choice.active,
+.alternative-box a:hover,
+.external-demo-link:hover {
   border-color: var(--lime);
   color: var(--lime);
+}
+
+.alternative-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.external-demo-link {
+  justify-self: start;
 }
 
 .notes-section {
@@ -955,26 +961,8 @@ h1:not(span) {
   }
 
   .hero-stage {
-    min-height: 320px;
-    transform: rotateX(6deg) rotateY(-8deg);
-  }
-
-  .floating-card {
-    width: 160px;
-    min-height: 96px;
-    font-size: 0.72rem;
-  }
-
-  .card-back {
-    left: 0;
-  }
-
-  .card-shoulders {
-    right: 0;
-  }
-
-  .card-core {
-    left: 72px;
+    min-height: auto;
+    transform: none;
   }
 
   .detail-header h2 {
