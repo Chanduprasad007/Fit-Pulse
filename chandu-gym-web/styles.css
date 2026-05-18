@@ -4,6 +4,7 @@
   --bg: #050505;
   --panel: #101010;
   --panel-2: #151515;
+  --button-bg: #0c0c0c;
   --line: #242424;
   --ink: #f7f7f7;
   --muted: #8b9198;
@@ -11,7 +12,35 @@
   --orange: #ff5a19;
   --cyan: #00d9ff;
   --violet: #9b4dff;
+  --grid-line: rgba(255, 255, 255, 0.025);
+  --soft-fill: rgba(255, 255, 255, 0.025);
+  --soft-line: rgba(255, 255, 255, 0.08);
+  --watermark: rgba(255, 255, 255, 0.055);
+  --number: #68717a;
+  --legend-ink: #5d646b;
+  --low-ink: #f3f3f3;
   --radius: 8px;
+}
+
+body[data-theme="light"] {
+  --bg: #f4f1e8;
+  --panel: #fffdf7;
+  --panel-2: #f8f1e4;
+  --button-bg: #fffaf0;
+  --line: #d9d2c3;
+  --ink: #171717;
+  --muted: #67717b;
+  --lime: #7d9700;
+  --orange: #e24a16;
+  --cyan: #007f99;
+  --violet: #7a45d1;
+  --grid-line: rgba(20, 20, 20, 0.045);
+  --soft-fill: rgba(20, 20, 20, 0.035);
+  --soft-line: rgba(20, 20, 20, 0.09);
+  --watermark: rgba(20, 20, 20, 0.07);
+  --number: #74808b;
+  --legend-ink: #6a737c;
+  --low-ink: #171717;
 }
 
 * {
@@ -27,8 +56,8 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
     var(--bg);
   background-size: 56px 56px;
   font-family: Archivo, system-ui, sans-serif;
@@ -192,7 +221,7 @@ h1:not(span) {
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #0c0c0c;
+  background: var(--button-bg);
   color: var(--ink);
   text-decoration: none;
   transition: border-color 160ms ease, color 160ms ease, transform 160ms ease, background 160ms ease;
@@ -236,7 +265,7 @@ h1:not(span) {
 .day-tab.active {
   border-color: var(--lime);
   color: var(--ink);
-  background: #151515;
+  background: var(--panel-2);
 }
 
 .day-tab span {
@@ -310,7 +339,7 @@ h1:not(span) {
 }
 
 .day-card-header > span {
-  color: rgba(255, 255, 255, 0.055);
+  color: var(--watermark);
   font-size: 5rem;
   line-height: 0.8;
   font-weight: 900;
@@ -339,12 +368,12 @@ h1:not(span) {
   gap: 8px;
   align-items: center;
   min-height: 33px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  border-bottom: 1px solid var(--soft-line);
   font-size: 0.9rem;
 }
 
 .exercise-mini-list span {
-  color: #67707a;
+  color: var(--number);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.7rem;
 }
@@ -424,7 +453,7 @@ h1:not(span) {
   align-items: start;
   justify-content: center;
   padding-top: 22px;
-  color: #68717a;
+  color: var(--number);
   border-right: 1px solid var(--line);
 }
 
@@ -470,10 +499,10 @@ h1:not(span) {
 .prescription span {
   min-height: 44px;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--soft-line);
   border-radius: 5px;
   color: var(--muted);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--soft-fill);
 }
 
 .prescription b {
@@ -532,11 +561,11 @@ h1:not(span) {
 
 .alternative-box a {
   padding: 7px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--soft-line);
   border-radius: 4px;
   color: var(--ink);
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--soft-fill);
 }
 
 .alternative-box a:hover {
@@ -575,7 +604,7 @@ h1:not(span) {
   margin-top: 20px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
-  color: #5d646b;
+  color: var(--legend-ink);
 }
 
 .legend b {
@@ -601,8 +630,8 @@ h1:not(span) {
 }
 
 .legend .low {
-  color: #f3f3f3;
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--low-ink);
+  background: var(--soft-fill);
 }
 
 @media (max-width: 1040px) {
