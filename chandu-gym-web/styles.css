@@ -365,10 +365,12 @@ h1:not(span) {
   display: grid;
   gap: 5px;
   align-content: center;
-  min-height: 58px;
-  padding: 10px;
+  min-height: 78px;
+  padding: 12px 10px;
   color: var(--muted);
+  line-height: 1.18;
   text-align: left;
+  overflow: hidden;
 }
 
 .day-tab.active {
@@ -406,8 +408,8 @@ h1:not(span) {
   transition: transform 220ms ease, box-shadow 220ms ease, outline-color 220ms ease;
 }
 
-.day-card:hover,
-.day-card.selected {
+.day-card:hover {
+  z-index: 3;
   transform: translateY(-4px) rotateX(2deg) translateZ(30px);
 }
 
@@ -656,13 +658,35 @@ h1:not(span) {
   background: var(--panel);
 }
 
+.movement-figure video {
+  width: 170px;
+  height: 132px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--panel);
+}
+
 .movement-figure figcaption {
+  display: grid;
+  gap: 7px;
   color: var(--muted);
+  line-height: 1.45;
+}
+
+.movement-figure figcaption strong {
+  color: var(--ink);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.movement-figure figcaption span {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
 }
 
 .motion-avatar {
@@ -990,6 +1014,7 @@ h1:not(span) {
   }
 
   .movement-figure img,
+  .movement-figure video,
   .motion-avatar {
     width: 100%;
   }
