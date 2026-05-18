@@ -5,101 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Chandu's 6-day gym workout planner with a modern training split, clean progression tracking, and a gym-first visual theme."
+      content="Fit Pulse 6-day strength and hypertrophy training program for wider back, bigger shoulders, lower-back strength, chest, and abs."
     />
-    <meta name="theme-color" content="#070a0f" />
+    <meta name="theme-color" content="#050505" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Fit Pulse" />
-    <title>Fit Pulse</title>
+    <title>Fit Pulse Training Program</title>
     <link rel="manifest" href="./app.webmanifest" />
     <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-theme="dark">
-    <div class="page-shell">
-      <header class="topbar">
-        <div class="brand-cluster">
-          <p class="eyebrow">Fit Pulse</p>
-          <div>
-            <h1>Fit Pulse</h1>
-            <p class="hero-text">6-day hypertrophy split with cleaner tracking and a sharper gym theme.</p>
-          </div>
+  <body>
+    <main class="page-shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">6-Day Hypertrophy Split</p>
+          <h1><span>Training</span> Program</h1>
         </div>
-        <div class="utility-cluster">
-          <div id="auth-shell" class="auth-shell topbar-auth"></div>
-          <button id="install-app" class="ghost-button install-button hidden" type="button">Install App</button>
-          <button id="theme-toggle" class="ghost-button theme-toggle" type="button">Dark Mode</button>
+        <div class="gym-lockup">
+          <strong>Cult · Uttarahalli</strong>
+          <span>Bulk phase · width and strength plan</span>
         </div>
       </header>
 
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Today</p>
-          <h2>Train the next day in the cycle and let the app handle progression.</h2>
-          <div class="trigger-shell">
-            <p class="small-copy">Quick Coach Triggers</p>
-            <div id="trigger-chip-list" class="trigger-chip-list"></div>
-            <p id="coach-trigger-message" class="coach-trigger-message muted"></p>
-          </div>
-          <div class="hero-actions">
-            <button id="jump-to-workout" class="primary-button">View Today</button>
-            <button id="print-workout" class="ghost-button">Print Card</button>
+      <section class="mission-band">
+        <div id="focus-tags" class="focus-tags"></div>
+        <div class="mission-copy">
+          <p>
+            Built like a trainer card: no logging, no cloud storage, no rep tracker. Pick the day, train the list, use
+            the form button when you need a demo, and use alternatives when equipment is occupied.
+          </p>
+          <div class="mission-actions">
+            <button id="expand-all" type="button">Show All Alternatives</button>
+            <button id="print-plan" type="button">Print Program</button>
           </div>
         </div>
-        <div class="hero-panel" id="hero-panel"></div>
       </section>
 
-      <main class="main-grid">
-        <section class="panel dashboard-panel">
-          <div class="section-heading compact-heading">
-            <p class="eyebrow">6-Day Split</p>
-            <h2>Weekly Rotation</h2>
-          </div>
-          <div id="stats-grid" class="stats-grid"></div>
-          <div id="week-split" class="week-split"></div>
-          <div id="coach-insights" class="coach-insights"></div>
-          <div id="nutrition-strip" class="nutrition-strip"></div>
-        </section>
+      <nav id="day-tabs" class="day-tabs" aria-label="Training days"></nav>
 
-        <section class="panel workout-panel" id="workout-panel">
-          <div class="section-heading compact-heading">
-            <p class="eyebrow">Today</p>
-            <h2>Workout Queue</h2>
-          </div>
-          <div id="workout-summary" class="workout-summary"></div>
-          <div id="coach-brief" class="coach-brief"></div>
-          <div id="exercise-list" class="exercise-list"></div>
-        </section>
+      <section id="program-grid" class="program-grid" aria-label="Six day split"></section>
 
-        <section class="panel tools-panel">
-          <div class="section-heading compact-heading">
-            <p class="eyebrow">Tracker</p>
-            <h2>Backup & Settings</h2>
-          </div>
-          <div class="tools-grid">
-            <label class="settings-card">
-              <span>Upper-body increment (kg)</span>
-              <input id="upper-increment" type="number" min="1" step="0.5" />
-            </label>
-            <label class="settings-card">
-              <span>Lower-body increment (kg)</span>
-              <input id="lower-increment" type="number" min="1" step="0.5" />
-            </label>
-            <button id="save-settings" class="primary-button">Save Progression</button>
-            <button id="export-data" class="ghost-button">Export Data</button>
-            <label class="ghost-button file-input">
-              <span>Import Data</span>
-              <input id="import-data" type="file" accept="application/json" />
-            </label>
-            <button id="reset-data" class="danger-button">Reset Data</button>
-          </div>
-        </section>
-      </main>
-    </div>
+      <section id="detail-panel" class="detail-panel" aria-label="Selected workout details"></section>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+      <section class="notes-section">
+        <div id="coaching-grid" class="coaching-grid"></div>
+        <footer class="legend">
+          <span><b class="key">KEY</b> Priority compound</span>
+          <span><b class="width">WIDTH</b> Back or shoulder width</span>
+          <span><b class="abs">ABS</b> Core strength</span>
+          <span><b class="low">LOW BACK</b> Spinal erector and hinge work</span>
+        </footer>
+      </section>
+    </main>
+
     <script type="module" src="./app.js"></script>
   </body>
 </html>
