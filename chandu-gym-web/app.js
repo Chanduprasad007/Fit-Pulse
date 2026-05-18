@@ -17,9 +17,11 @@ let expandedAlternatives = new Set(program.flatMap((day) => day.exercises.map((e
 let allExpanded = true;
 let exerciseMedia = new Map();
 
-const mediaSeed = new Map([
-  ["barbell bench press", { name: "barbell bench press", gifUrl: "https://static.exercisedb.dev/media/EIeI8Vf.gif" }],
-]);
+const WORKOUT_API_KEY = "4a336cfd0f221278b112e4b15f3d27fff3b8629ab018fe4da3ebc1c2b2d44060";
+const WORKOUT_API_BASE_URL = "https://api.workoutapi.com";
+const WORKOUT_API_ALIASES = {
+  "rope triceps pushdown": "Rope Triceps Extension",
+};
 
 elements.themeButton.addEventListener("click", toggleTheme);
 elements.printButton.addEventListener("click", () => window.print());
@@ -214,11 +216,14 @@ function setTheme(theme) {
 
 function renderAnimationPanel(exercise) {
   const media = findMedia(exercise.animationQuery || exercise.name);
-  if (media?.gifUrl) {
+  if (media?.imageObjectUrl) {
     return `
       <figure class="movement-figure has-media">
-        <img src="${media.gifUrl}" alt="${exercise.name} exercise demonstration" loading="lazy" />
-        <figcaption>${media.name}</figcaption>
+        <img src="${media.imageObjectUrl}" alt="${exercise.name} WorkoutAPI illustration" loading="lazy" />
+        <figcaption>
+          <strong>${media.name}</strong>
+          <span>${media.description || exercise.cue}</span>
+        </figcaption>
       </figure>
     `;
   }
@@ -233,7 +238,10 @@ function renderAnimationPanel(exercise) {
         <span class="motion-leg leg-left"></span>
         <span class="motion-leg leg-right"></span>
       </div>
-      <figcaption>3D form cue while online demo loads</figcaption>
+      <figcaption>
+        <strong>WorkoutAPI illustration loading</strong>
+        <span>${exercise.cue}</span>
+      </figcaption>
     </figure>
   `;
 }
@@ -246,7 +254,7 @@ function hydrateAnimationPanels() {
     );
     const exercise = day?.exercises.find((candidate) => exerciseKey(day, candidate) === panel.dataset.animationKey);
     const media = findMedia(query);
-    if (!exercise || !media?.gifUrl) {
+    if (!exercise || !media?.imageObjectUrl) {
       return;
     }
     panel.innerHTML = renderAnimationPanel(exercise);
@@ -254,45 +262,97 @@ function hydrateAnimationPanels() {
 }
 
 async function loadExerciseAnimations() {
-  exerciseMedia = new Map(mediaSeed);
+  exerciseMedia = new Map();
   hydrateAnimationPanels();
 
-  try {
-    let cursor = "";
-    const wanted = new Set(program.flatMap((day) => day.exercises.map((exercise) => normalizeName(exercise.animationQuery || exercise.name))));
+  const apiExercises = await fetchWorkoutApiExercises();
+  const uniqueQueries = [...new Set(program.flatMap((day) => day.exercises.map((exercise) => exercise.animationQuery || exercise.name)))];
 
-    for (let page = 0; page < 8 && wanted.size; page += 1) {
-      const url = new URL("https://oss.exercisedb.dev/api/v1/exercises");
-      if (cursor) {
-        url.searchParams.set("after", cursor);
-      }
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        break;
-      }
-
-      const payload = await response.json();
-      const exercises = Array.isArray(payload?.data) ? payload.data : [];
-      exercises.forEach((item) => {
-        const key = normalizeName(item.name);
-        exerciseMedia.set(key, item);
-        wanted.forEach((wantedKey) => {
-          if (key === wantedKey || key.includes(wantedKey) || wantedKey.includes(key)) {
-            wanted.delete(wantedKey);
-          }
-        });
-      });
-
-      hydrateAnimationPanels();
-      cursor = payload?.meta?.nextCursor;
-      if (!payload?.meta?.hasNextPage || !cursor) {
-        break;
-      }
+  for (const query of uniqueQueries) {
+    const existing = findMedia(query);
+    if (existing?.imageObjectUrl) {
+      continue;
     }
-  } catch {
-    hydrateAnimationPanels();
+
+    const media = pickBestMediaResult(WORKOUT_API_ALIASES[normalizeName(query)] || query, apiExercises);
+    if (media) {
+      const imageObjectUrl = await fetchWorkoutApiImage(media.id);
+      exerciseMedia.set(normalizeName(query), { ...media, imageObjectUrl });
+      hydrateAnimationPanels();
+    }
   }
+}
+
+async function fetchWorkoutApiExercises() {
+  try {
+    const response = await fetch(`${WORKOUT_API_BASE_URL}/exercises`, {
+      headers: {
+        Accept: "application/json",
+        "x-api-key": WORKOUT_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const payload = await response.json();
+    return Array.isArray(payload) ? payload : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchWorkoutApiImage(exerciseId) {
+  if (!exerciseId) {
+    return "";
+  }
+
+  try {
+    const response = await fetch(`${WORKOUT_API_BASE_URL}/exercises/${exerciseId}/image`, {
+      headers: {
+        Accept: "image/svg+xml,application/json",
+        "x-api-key": WORKOUT_API_KEY,
+      },
+    });
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return "";
+  }
+}
+
+function pickBestMediaResult(query, results) {
+  if (!results.length) {
+    return null;
+  }
+
+  const queryKey = normalizeName(query);
+  const looseQueryKey = normalizeLooseName(query);
+  const exact = results.find(
+    (item) =>
+      normalizeName(item.name) === queryKey ||
+      normalizeName(item.code) === queryKey ||
+      normalizeLooseName(item.name) === looseQueryKey,
+  );
+  if (exact) {
+    return exact;
+  }
+
+  return (
+    results.find((item) => normalizeName(item.name).includes(queryKey) || queryKey.includes(normalizeName(item.name))) ||
+    results.find((item) => {
+      const itemKey = normalizeLooseName(item.name);
+      return itemKey.includes(looseQueryKey) || looseQueryKey.includes(itemKey);
+    }) ||
+    results.find((item) => looseQueryKey.split(" ").every((part) => normalizeLooseName(item.name).includes(part))) ||
+    null
+  );
 }
 
 function findMedia(name) {
@@ -309,6 +369,16 @@ function normalizeName(name) {
     .toLowerCase()
     .replace(/\b(bb|db)\b/g, "")
     .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeLooseName(name) {
+  return normalizeName(name)
+    .replace(
+      /\b(barbell|dumbbell|cable|machine|weighted|seated|standing|incline|decline|single arm|single|wide grip|wide|close grip|close|ez bar|45 degree|degree)\b/g,
+      "",
+    )
     .replace(/\s+/g, " ")
     .trim();
 }
