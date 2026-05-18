@@ -17,12 +17,29 @@
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-theme="dark">
+  <body data-theme="light">
     <main class="page-shell">
+      <section class="scroll-hero" aria-label="Fit Pulse program overview">
+        <div class="hero-copy">
+          <p class="eyebrow">Fit Pulse / 3D Training Deck</p>
+          <h1><span>Training</span> Program</h1>
+          <p>
+            A six-day Cult Fit plan for shoulder caps, lat width, chest strength, abs, and a stronger lower back.
+          </p>
+        </div>
+        <div class="hero-stage" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="floating-card card-back">Back Width</div>
+          <div class="floating-card card-shoulders">Shoulders</div>
+          <div class="floating-card card-core">Abs + Low Back</div>
+        </div>
+      </section>
+
       <header class="masthead">
         <div>
           <p class="eyebrow">6-Day Hypertrophy Split</p>
-          <h1><span>Training</span> Program</h1>
+          <h2>Program Board</h2>
         </div>
         <div class="gym-lockup">
           <strong>Cult · Uttarahalli</strong>
@@ -38,7 +55,7 @@
             extensions, and bracing work.
           </p>
           <div class="mission-actions">
-            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">Light Mode</button>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true">Dark Mode</button>
             <button id="expand-all" type="button">Show All Alternatives</button>
             <button id="print-plan" type="button">Print Program</button>
           </div>
@@ -58,6 +75,7 @@
           <span><b class="width">WIDTH</b> Back or shoulder width</span>
           <span><b class="abs">ABS</b> Core strength</span>
           <span><b class="low">LOW BACK</b> Spinal erector and hinge work</span>
+          <span>Animations powered by <a href="https://docs.ascendapi.com/products/edb-v1/overview" target="_blank" rel="noopener noreferrer">ExerciseDB</a></span>
         </footer>
       </section>
     </main>
