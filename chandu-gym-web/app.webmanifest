@@ -1,13 +1,13 @@
 {
   "name": "Fit Pulse",
   "short_name": "Fit Pulse",
-  "description": "Six-day hypertrophy coaching, workout logging, and Supabase cloud sync for Chandu.",
+  "description": "Static six-day training program for wider back, bigger shoulders, lower-back strength, chest, and abs.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070a0f",
-  "theme_color": "#070a0f",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "categories": ["health", "fitness", "sports"],
   "icons": [
     {

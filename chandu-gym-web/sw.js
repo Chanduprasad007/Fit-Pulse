@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-pulse-program-v5";
+const CACHE_NAME = "fit-pulse-program-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
