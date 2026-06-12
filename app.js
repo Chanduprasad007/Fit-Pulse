@@ -23,7 +23,17 @@ let selectedAlternatives = new Map();
 
 // Session Caching & Storage
 const MEDIA_CACHE_NAME = "fit-pulse-media-cache-v1";
-let workoutLogs = JSON.parse(localStorage.getItem("fit_pulse_workout_logs") || "{}");
+let workoutLogs = {};
+try {
+  const storedLogs = localStorage.getItem("fit_pulse_workout_logs");
+  workoutLogs = storedLogs ? JSON.parse(storedLogs) : {};
+  if (typeof workoutLogs !== "object" || workoutLogs === null) {
+    workoutLogs = {};
+  }
+} catch (e) {
+  console.error("Failed to parse workout logs, resetting:", e);
+  workoutLogs = {};
+}
 let activeSession = null;
 let sessionTimerInterval = null;
 let restTimerInterval = null;
