@@ -22,5 +22,19 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "./icons/thumbnail.png",
+      "sizes": "1000x1000",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "./icons/thumbnail.png",
+      "sizes": "1000x1000",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
   ]
 }

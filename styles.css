@@ -3,6 +3,7 @@
 :root {
   --bg: #050505;
   --bg-glow: rgba(217, 255, 0, 0.1);
+  --bg-glow-secondary: rgba(0, 217, 255, 0.12);
   --panel: #101010;
   --panel-2: #151515;
   --button-bg: #0c0c0c;
@@ -22,11 +23,38 @@
   --low-ink: #f3f3f3;
   --shadow: 0 26px 70px rgba(0, 0, 0, 0.34);
   --radius: 8px;
+
+  /* Theme Color Alpha/Glow Variations */
+  --lime-alpha-40: rgba(217, 255, 0, 0.4);
+  --lime-alpha-35: rgba(217, 255, 0, 0.35);
+  --lime-alpha-30: rgba(217, 255, 0, 0.3);
+  --lime-alpha-25: rgba(217, 255, 0, 0.25);
+  --lime-alpha-10: rgba(217, 255, 0, 0.1);
+  --lime-alpha-08: rgba(217, 255, 0, 0.08);
+  --lime-alpha-06: rgba(217, 255, 0, 0.06);
+  --lime-alpha-055: rgba(217, 255, 0, 0.055);
+  --lime-alpha-02: rgba(217, 255, 0, 0.02);
+
+  --orange-alpha-70: rgba(255, 90, 25, 0.7);
+  --orange-alpha-45: rgba(255, 90, 25, 0.45);
+  --orange-alpha-40: rgba(255, 90, 25, 0.4);
+  --orange-alpha-28: rgba(255, 90, 25, 0.28);
+  --orange-alpha-25: rgba(255, 90, 25, 0.25);
+  --orange-alpha-16: rgba(255, 90, 25, 0.16);
+  --orange-alpha-15: rgba(255, 90, 25, 0.15);
+  --orange-alpha-12: rgba(255, 90, 25, 0.12);
+  --orange-alpha-08: rgba(255, 90, 25, 0.08);
+  --orange-alpha-06: rgba(255, 90, 25, 0.06);
+  --orange-alpha-03: rgba(255, 90, 25, 0.03);
+
+  --cyan-alpha-35: rgba(0, 217, 255, 0.35);
+  --cyan-alpha-10: rgba(0, 217, 255, 0.1);
 }
 
 body[data-theme="light"] {
   --bg: #f4f1e8;
   --bg-glow: rgba(255, 90, 25, 0.12);
+  --bg-glow-secondary: rgba(0, 127, 153, 0.06);
   --panel: #fffdf7;
   --panel-2: #f8f1e4;
   --button-bg: #fffaf0;
@@ -45,6 +73,32 @@ body[data-theme="light"] {
   --legend-ink: #6a737c;
   --low-ink: #171717;
   --shadow: 0 24px 58px rgba(84, 65, 35, 0.12);
+
+  /* Theme Color Alpha/Glow Variations */
+  --lime-alpha-40: rgba(125, 151, 0, 0.4);
+  --lime-alpha-35: rgba(125, 151, 0, 0.35);
+  --lime-alpha-30: rgba(125, 151, 0, 0.3);
+  --lime-alpha-25: rgba(125, 151, 0, 0.25);
+  --lime-alpha-10: rgba(125, 151, 0, 0.1);
+  --lime-alpha-08: rgba(125, 151, 0, 0.08);
+  --lime-alpha-06: rgba(125, 151, 0, 0.06);
+  --lime-alpha-055: rgba(125, 151, 0, 0.055);
+  --lime-alpha-02: rgba(125, 151, 0, 0.02);
+
+  --orange-alpha-70: rgba(226, 74, 22, 0.7);
+  --orange-alpha-45: rgba(226, 74, 22, 0.45);
+  --orange-alpha-40: rgba(226, 74, 22, 0.4);
+  --orange-alpha-28: rgba(226, 74, 22, 0.28);
+  --orange-alpha-25: rgba(226, 74, 22, 0.25);
+  --orange-alpha-16: rgba(226, 74, 22, 0.16);
+  --orange-alpha-15: rgba(226, 74, 22, 0.15);
+  --orange-alpha-12: rgba(226, 74, 22, 0.12);
+  --orange-alpha-08: rgba(226, 74, 22, 0.08);
+  --orange-alpha-06: rgba(226, 74, 22, 0.06);
+  --orange-alpha-03: rgba(226, 74, 22, 0.03);
+
+  --cyan-alpha-35: rgba(0, 127, 153, 0.35);
+  --cyan-alpha-10: rgba(0, 127, 153, 0.1);
 }
 
 * {
@@ -61,7 +115,7 @@ body {
   color: var(--ink);
   background:
     radial-gradient(circle at 18% 8%, var(--bg-glow), transparent 28%),
-    radial-gradient(circle at 86% 18%, rgba(0, 217, 255, 0.12), transparent 26%),
+    radial-gradient(circle at 86% 18%, var(--bg-glow-secondary), transparent 26%),
     linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
     linear-gradient(var(--grid-line) 1px, transparent 1px),
     var(--bg);
@@ -154,7 +208,7 @@ button {
 .metric-primary {
   min-height: 172px;
   background:
-    linear-gradient(135deg, rgba(255, 90, 25, 0.12), transparent 62%),
+    linear-gradient(135deg, var(--orange-alpha-12), transparent 62%),
     var(--panel);
 }
 
@@ -493,7 +547,7 @@ h1:not(span) {
 
 .exercise-mini-list em {
   padding: 3px 6px;
-  border: 1px solid rgba(217, 255, 0, 0.35);
+  border: 1px solid var(--lime-alpha-35);
   border-radius: 3px;
   color: var(--lime);
   font-family: "IBM Plex Mono", monospace;
@@ -591,7 +645,7 @@ h1:not(span) {
 .exercise-tag {
   flex: 0 0 auto;
   padding: 5px 8px;
-  border: 1px solid rgba(0, 217, 255, 0.35);
+  border: 1px solid var(--cyan-alpha-35);
   border-radius: 3px;
   color: var(--cyan);
 }
@@ -681,7 +735,7 @@ h1:not(span) {
   height: 132px;
   border-radius: 6px;
   background:
-    radial-gradient(circle at 50% 32%, rgba(255, 90, 25, 0.16), transparent 22%),
+    radial-gradient(circle at 50% 32%, var(--orange-alpha-16), transparent 22%),
     linear-gradient(180deg, var(--panel), var(--button-bg));
   transform: translateZ(30px);
 }
@@ -690,7 +744,7 @@ h1:not(span) {
   position: absolute;
   display: block;
   background: var(--orange);
-  box-shadow: 0 0 18px rgba(255, 90, 25, 0.28);
+  box-shadow: 0 0 18px var(--orange-alpha-28);
   animation: lift-pulse 1.35s ease-in-out infinite alternate;
 }
 
@@ -776,21 +830,21 @@ h1:not(span) {
 }
 
 .form-button {
-  border-color: rgba(255, 90, 25, 0.45);
+  border-color: var(--orange-alpha-45);
   color: var(--orange);
 }
 
 .alt-button {
-  border-color: rgba(217, 255, 0, 0.4);
+  border-color: var(--lime-alpha-40);
   color: var(--lime);
 }
 
 .alternative-box {
   margin-top: 14px;
   padding: 14px;
-  border: 1px solid rgba(217, 255, 0, 0.25);
+  border: 1px solid var(--lime-alpha-25);
   border-radius: 5px;
-  background: rgba(217, 255, 0, 0.055);
+  background: var(--lime-alpha-055);
 }
 
 .alternative-box p {
@@ -886,17 +940,17 @@ h1:not(span) {
 
 .legend .key {
   color: var(--orange);
-  background: rgba(255, 90, 25, 0.12);
+  background: var(--orange-alpha-12);
 }
 
 .legend .width {
   color: var(--cyan);
-  background: rgba(0, 217, 255, 0.1);
+  background: var(--cyan-alpha-10);
 }
 
 .legend .abs {
   color: var(--lime);
-  background: rgba(217, 255, 0, 0.1);
+  background: var(--lime-alpha-10);
 }
 
 .legend .low {
@@ -1054,7 +1108,7 @@ body[data-session-active="true"] .workout-tracker-panel {
   font-size: 1.45rem;
   color: var(--orange);
   font-weight: 700;
-  text-shadow: 0 0 10px rgba(255, 90, 25, 0.15);
+  text-shadow: 0 0 10px var(--orange-alpha-15);
 }
 .tracker-actions {
   display: flex;
@@ -1079,16 +1133,16 @@ body[data-session-active="true"] .workout-tracker-panel {
   color: var(--lime);
 }
 .tracker-btn.finish:hover {
-  background: rgba(217, 255, 0, 0.08);
+  background: var(--lime-alpha-08);
   border-color: var(--lime);
   color: var(--lime);
 }
 .tracker-btn.cancel {
-  border-color: rgba(255, 90, 25, 0.4);
+  border-color: var(--orange-alpha-40);
   color: var(--orange);
 }
 .tracker-btn.cancel:hover {
-  background: rgba(255, 90, 25, 0.08);
+  background: var(--orange-alpha-08);
   color: var(--orange);
   border-color: var(--orange);
 }
@@ -1146,8 +1200,8 @@ body[data-session-active="true"] .workout-tracker-panel {
 }
 .tracker-exercise-progress.completed {
   color: var(--lime);
-  border-color: rgba(217, 255, 0, 0.35);
-  background: rgba(217, 255, 0, 0.06);
+  border-color: var(--lime-alpha-35);
+  background: var(--lime-alpha-06);
 }
 .tracker-exercise-arrow {
   font-size: 0.8rem;
@@ -1195,8 +1249,8 @@ body[data-session-active="true"] .workout-tracker-panel {
   transition: all 0.2s ease;
 }
 .set-tracker-row.completed {
-  border-color: rgba(217, 255, 0, 0.3);
-  background: rgba(217, 255, 0, 0.02);
+  border-color: var(--lime-alpha-30);
+  background: var(--lime-alpha-02);
 }
 .set-num {
   font-family: "IBM Plex Mono", monospace;
@@ -1287,11 +1341,11 @@ body[data-session-active="true"] .workout-tracker-panel {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid rgba(255, 90, 25, 0.25);
+  border: 1px solid var(--orange-alpha-25);
   border-radius: 6px;
-  background: rgba(255, 90, 25, 0.06);
+  background: var(--orange-alpha-06);
   margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(255, 90, 25, 0.03);
+  box-shadow: 0 4px 12px var(--orange-alpha-03);
   animation: slideDown 0.25s ease-out;
 }
 .overload-icon {
@@ -1300,8 +1354,8 @@ body[data-session-active="true"] .workout-tracker-panel {
   animation: pulseFire 1.2s ease-in-out infinite alternate;
 }
 @keyframes pulseFire {
-  from { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255, 90, 25, 0.4)); }
-  to { transform: scale(1.15); filter: drop-shadow(0 0 6px rgba(255, 90, 25, 0.7)); }
+  from { transform: scale(1); filter: drop-shadow(0 0 2px var(--orange-alpha-40)); }
+  to { transform: scale(1.15); filter: drop-shadow(0 0 6px var(--orange-alpha-70)); }
 }
 .overload-text {
   margin: 0;

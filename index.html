@@ -16,8 +16,27 @@
     <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
     <link rel="apple-touch-icon" href="./icons/icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Fit Pulse Training Program" />
+    <meta property="og:description" content="6-day Cult Fit strength and hypertrophy training program for V-taper, shoulder caps, lat width, lower-back strength, chest, and abs." />
+    <meta property="og:image" content="./icons/thumbnail.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="Fit Pulse Training Program" />
+    <meta property="twitter:description" content="6-day Cult Fit strength and hypertrophy training program for V-taper, shoulder caps, lat width, lower-back strength, chest, and abs." />
+    <meta property="twitter:image" content="./icons/thumbnail.png" />
   </head>
-  <body data-theme="light">
+  <body>
+    <script>
+      (function() {
+        const theme = localStorage.getItem("fit-pulse-theme") || 
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.body.dataset.theme = theme;
+        document.querySelector("meta[name='theme-color']")?.setAttribute("content", theme === "dark" ? "#050505" : "#f4f1e8");
+      })();
+    </script>
     <main class="page-shell">
       <section class="scroll-hero" aria-label="Fit Pulse program overview">
         <div class="hero-copy">

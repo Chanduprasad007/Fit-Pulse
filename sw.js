@@ -1,4 +1,4 @@
-const CACHE_NAME = "fit-pulse-program-v7";
+const CACHE_NAME = "fit-pulse-program-v8";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const APP_SHELL = [
   "./app.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./icons/thumbnail.png",
   "./.nojekyll",
 ];
 

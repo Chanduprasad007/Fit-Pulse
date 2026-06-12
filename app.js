@@ -242,7 +242,9 @@ elements.expandButton.addEventListener("click", () => {
 });
 
 render();
-setTheme("light");
+const savedTheme = localStorage.getItem("fit-pulse-theme") || 
+  (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+setTheme(savedTheme);
 loadExerciseAnimations();
 window.addEventListener("scroll", updateScrollScene, { passive: true });
 updateScrollScene();
@@ -538,7 +540,13 @@ function googleFormUrl(exerciseName) {
 }
 
 function toggleTheme() {
-  setTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+  const newTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+  setTheme(newTheme);
+  try {
+    localStorage.setItem("fit-pulse-theme", newTheme);
+  } catch (e) {
+    console.error("Failed to save theme setting", e);
+  }
 }
 
 function setTheme(theme) {
